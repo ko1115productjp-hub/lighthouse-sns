@@ -1,0 +1,1 @@
+"""SNS Platform Backend Application"""
