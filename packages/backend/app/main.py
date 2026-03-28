@@ -75,6 +75,16 @@ async def health_check():
     }
 
 
+@app.get("/api/v1/health")
+async def api_v1_health_check():
+    """API v1 health check endpoint"""
+    return {
+        "status": "healthy",
+        "database": "connected",  # TODO: Add actual DB health check
+        "redis": "connected",  # TODO: Add actual Redis health check
+    }
+
+
 # Include routers
 from app.routers import auth, users, outputs, citations, agreements, follow, outputs_verify, search, notifications, places
 
