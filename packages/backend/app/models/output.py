@@ -1,12 +1,14 @@
 """Output (Post) model for user-generated content."""
 
 from sqlalchemy import String, Text, Integer, Float, DateTime, ForeignKey, Enum as SQLEnum
-from sqlalchemy.dialects.postgresql import UUID, ARRAY
+from sqlalchemy.dialects.postgresql import UUID, ARRAY, JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
+from pgvector.sqlalchemy import Vector
 from datetime import datetime
 import uuid
 import enum
+from typing import Any
 
 from app.database import Base
 
@@ -54,9 +56,10 @@ class Output(Base):
     )
 
     # Content
+    title: Mapped[str | None] = mapped_column(String(200), nullable=True)  # Optional title
     content: Mapped[str] = mapped_column(Text, nullable=False)
     category: Mapped[CategoryEnum] = mapped_column(
-        SQLEnum(CategoryEnum, name="category_enum"), nullable=False
+        SQLEnum(CategoryEnum, name="category_enum", values_callable=lambda x: [e.name for e in x]), nullable=False
     )
     tags: Mapped[list[str]] = mapped_column(ARRAY(String(30)), nullable=False, default=list)
 
@@ -75,6 +78,40 @@ class Output(Base):
     novelty_score: Mapped[float | None] = mapped_column(
         Float, nullable=True, index=True
     )  # 0-100, Phase 2
+    ai_review_flagged_categories: Mapped[list[str] | None] = mapped_column(
+        ARRAY(String(50)), nullable=True
+    )  # Categories flagged by moderation (e.g., 'violence', 'hate')
+    ai_review_feedback: Mapped[str | None] = mapped_column(
+        Text, nullable=True
+    )  # User-friendly feedback message for rejected content
+
+    # Originality checking (Lighthouse Protocol - 査読1)
+    content_embedding: Mapped[Any | None] = mapped_column(
+        Vector(1536), nullable=True
+    )  # OpenAI embedding vector for similarity search
+    originality_score: Mapped[int | None] = mapped_column(
+        Integer, nullable=True
+    )  # Originality score from LLM judgment (0-100)
+    ai_generated_probability: Mapped[int | None] = mapped_column(
+        Integer, nullable=True
+    )  # Probability that content is AI-generated (0-100%)
+    originality_warnings: Mapped[list[str] | None] = mapped_column(
+        ARRAY(Text), nullable=True
+    )  # Array of warning messages from originality checks
+    originality_reasoning: Mapped[str | None] = mapped_column(
+        Text, nullable=True
+    )  # Reasoning from LLM judgment explaining the originality score
+
+    # Referenced entity (for reviews of places, books, movies, etc.)
+    referenced_entity_type: Mapped[str | None] = mapped_column(
+        String(20), nullable=True, index=True
+    )  # 'place', 'book', 'movie', 'stage', 'concert', null
+    referenced_entity_id: Mapped[str | None] = mapped_column(
+        String(255), nullable=True, index=True
+    )  # External API ID (Google Place ID, ISBN, TMDb ID, etc.)
+    referenced_entity_data: Mapped[dict[str, Any] | None] = mapped_column(
+        JSONB, nullable=True
+    )  # Metadata from external APIs
 
     # Hash chain (for immutability)
     content_hash: Mapped[str] = mapped_column(

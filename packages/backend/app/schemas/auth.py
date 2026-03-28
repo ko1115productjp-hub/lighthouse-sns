@@ -2,6 +2,7 @@
 
 from pydantic import BaseModel, EmailStr, Field, ConfigDict
 from uuid import UUID
+from typing import Any
 
 
 class LoginRequest(BaseModel):
@@ -27,6 +28,7 @@ class Token(BaseModel):
     refresh_token: str
     expires_in: int = 900  # 15 minutes in seconds
     token_type: str = "bearer"
+    user: Any  # User information included in login response
 
 
 class TokenData(BaseModel):

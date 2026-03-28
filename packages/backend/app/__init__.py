@@ -1,1 +1,1 @@
-"""SNS Platform Backend Application"""
+"""Lighthouse Backend Application"""

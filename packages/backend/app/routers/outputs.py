@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.database import get_db
 from app.dependencies import get_current_active_user, get_optional_current_user
 from app.models.user import User
-from app.models.output import Output, VisibilityEnum, AIReviewStatus
+from app.models.output import Output, VisibilityEnum, AIReviewStatus, CategoryEnum
 from app.models.output_history import OutputHistory
 from app.models.follow import Follow
 from app.models.citation import Citation
@@ -34,6 +34,14 @@ from app.utils.ai_moderation import (
     calculate_novelty_score,
     determine_visibility,
 )
+from app.utils.embeddings import generate_embedding
+from app.utils.similarity_search import find_similar_outputs
+from app.utils.web_search import search_web_for_content
+from app.utils.originality_check import (
+    check_originality_with_llm,
+    generate_originality_warnings,
+    should_approve_for_public,
+)
 
 router = APIRouter(prefix="/outputs", tags=["Outputs"])
 
@@ -56,38 +64,134 @@ async def create_output(
         Created output information
 
     Raises:
-        HTTPException: If content moderation fails
+        HTTPException: If user has not agreed to protocol or content moderation fails
     """
-    # Check content safety with AI moderation
-    moderation_result = await check_content_safety(output_data.content)
-
-    if not moderation_result.is_safe:
+    # Check if user has agreed to the Lighthouse Protocol
+    if not current_user.has_agreed_to_protocol:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Content violates safety policies: {', '.join(moderation_result.flagged_categories)}",
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You must agree to the Lighthouse Protocol before creating outputs. All public outputs are permanently stored and cannot be deleted.",
         )
 
-    # Calculate novelty score
-    novelty_score = await calculate_novelty_score(output_data.content)
+    # Check content safety with AI moderation (category-aware)
+    moderation_result = await check_content_safety(
+        output_data.content, category=output_data.category.value
+    )
 
-    # Determine visibility based on novelty
-    visibility = await determine_visibility(novelty_score)
+    # Determine AI review status and feedback
+    if not moderation_result.is_safe:
+        # Rejected: Store as private draft with feedback
+        ai_review_status = AIReviewStatus.REJECTED
+        ai_review_flagged_categories = moderation_result.flagged_categories
+        ai_review_feedback = moderation_result.get_user_feedback()
+        visibility = "private"  # Rejected outputs are always private
+        novelty_score = None  # Don't calculate novelty for rejected content
 
-    # Generate content hash (content only, for deduplication)
-    content_hash = generate_content_hash(content=output_data.content)
+        # Don't perform originality checks for rejected content
+        content_embedding = None
+        originality_score = None
+        ai_generated_probability = None
+        originality_warnings = None
+        originality_reasoning = None
+
+        # Simplified hashing for rejected content (not part of hash chain)
+        content_hash = generate_content_hash(content=output_data.content)
+        full_hash = content_hash  # Use content hash as full hash
+    else:
+        # Approved: Proceed with originality checking (査読1 - Lighthouse Protocol)
+        ai_review_status = AIReviewStatus.APPROVED
+        ai_review_flagged_categories = None
+        ai_review_feedback = None
+
+        # === Phase 1.2: Embeddings Generation ===
+        content_embedding = await generate_embedding(output_data.content)
+
+        # === Phase 1.3: Similarity Check (Internal Database) ===
+        similar_outputs = []
+        if content_embedding:
+            similar_outputs = await find_similar_outputs(
+                db=db,
+                embedding=content_embedding,
+                threshold=0.85,
+                limit=5,
+            )
+
+        # === Phase 1.4: Web Search Check (External Plagiarism) ===
+        web_results = await search_web_for_content(
+            content=output_data.content,
+            num_phrases=3,
+            results_per_phrase=3,
+        )
+
+        # === Phase 1.5: LLM Originality Judgment ===
+        originality_judgment = await check_originality_with_llm(
+            content=output_data.content,
+            similar_outputs=similar_outputs,
+            web_search_results=web_results,
+        )
+
+        # Initialize originality fields with defaults
+        originality_score = None
+        ai_generated_probability = None
+        originality_warnings = []
+        originality_reasoning = None
+        novelty_score = None
+
+        # Determine visibility based on originality judgment
+        if originality_judgment:
+            originality_score = originality_judgment.originality_score
+            ai_generated_probability = originality_judgment.ai_generated_probability
+            originality_reasoning = originality_judgment.reasoning
+
+            # Generate warning messages
+            originality_warnings = generate_originality_warnings(
+                judgment=originality_judgment,
+                similar_outputs=similar_outputs,
+                web_results=web_results,
+            )
+
+            # Check if approved for public based on originality
+            is_approved, approval_reason = should_approve_for_public(
+                judgment=originality_judgment,
+                threshold=60,  # Default threshold from Lighthouse Protocol
+                similar_outputs=similar_outputs,
+                web_results=web_results,
+            )
+
+            if not is_approved:
+                # Demote to private due to low originality
+                visibility = "private"
+                ai_review_feedback = approval_reason
+            else:
+                # Calculate novelty score (Phase 2 feature, optional)
+                novelty_score = await calculate_novelty_score(output_data.content)
+                # Determine visibility (can be public or private based on novelty)
+                visibility = await determine_visibility(novelty_score)
+        else:
+            # No originality judgment available (API error, etc.)
+            # Fallback to novelty-based visibility
+            novelty_score = await calculate_novelty_score(output_data.content)
+            visibility = await determine_visibility(novelty_score)
+
+        # Generate content hash (content only, for deduplication)
+        content_hash = generate_content_hash(content=output_data.content)
+
+        # Generate full hash (content + metadata + timestamp) for hash chain
+        created_at = datetime.now(timezone.utc)
+        full_hash = generate_full_hash(
+            content=output_data.content,
+            user_id=str(current_user.id),
+            category=output_data.category.value,
+            tags=output_data.tags or [],
+            created_at=created_at,
+            previous_hash=None,
+            referenced_entity_type=output_data.referenced_entity_type,
+            referenced_entity_id=output_data.referenced_entity_id,
+            referenced_entity_data=output_data.referenced_entity_data,
+        )
 
     # Get creation timestamp
     created_at = datetime.now(timezone.utc)
-
-    # Generate full hash (content + metadata + timestamp)
-    full_hash = generate_full_hash(
-        content=output_data.content,
-        user_id=str(current_user.id),
-        category=output_data.category.value,
-        tags=output_data.tags or [],
-        created_at=created_at,
-        previous_hash=None,
-    )
 
     # Generate output ID
     output_id = generate_output_id(full_hash, created_at)
@@ -99,16 +203,27 @@ async def create_output(
         timestamp_suffix = str(int(created_at.timestamp()))[-4:]
         output_id = f"{output_id}-{timestamp_suffix}"
 
-    # Create output
+    # Create output - pass enum directly (str enum works with SQLAlchemy)
     new_output = Output(
         id=output_id,
         user_id=current_user.id,
+        title=output_data.title,
         content=output_data.content,
-        category=output_data.category,
+        category=output_data.category,  # Pass enum directly
         tags=output_data.tags or [],
         visibility=VisibilityEnum(visibility),
-        ai_review_status=AIReviewStatus.APPROVED,
-        novelty_score=novelty_score,
+        ai_review_status=ai_review_status,
+        ai_review_flagged_categories=ai_review_flagged_categories,
+        ai_review_feedback=ai_review_feedback,
+        novelty_score=novelty_score if ai_review_status == AIReviewStatus.APPROVED else None,
+        content_embedding=content_embedding if ai_review_status == AIReviewStatus.APPROVED else None,
+        originality_score=originality_score,
+        ai_generated_probability=ai_generated_probability,
+        originality_warnings=originality_warnings if originality_warnings else None,
+        originality_reasoning=originality_reasoning,
+        referenced_entity_type=output_data.referenced_entity_type,
+        referenced_entity_id=output_data.referenced_entity_id,
+        referenced_entity_data=output_data.referenced_entity_data,
         content_hash=content_hash,
         hash=full_hash,
         previous_hash=None,
@@ -121,8 +236,6 @@ async def create_output(
     await db.refresh(new_output)
 
     return OutputResponse.model_validate(new_output)
-
-
 @router.patch("/{output_id}", response_model=OutputResponse)
 async def update_output(
     output_id: str,
@@ -173,26 +286,130 @@ async def update_output(
     )
     db.add(history_entry)
 
-    # Check content safety
-    if output_data.content is not None:
-        moderation_result = await check_content_safety(output_data.content)
+    # Check content safety if content changed (category-aware)
+    if output_data.content is not None and output_data.content != existing_output.content:
+        # Use updated category if provided, otherwise use existing category
+        category_for_moderation = (
+            output_data.category.value
+            if output_data.category
+            else existing_output.category.value
+        )
+        moderation_result = await check_content_safety(
+            output_data.content, category=category_for_moderation
+        )
         if not moderation_result.is_safe:
+            # Reject the edit with detailed feedback
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Content violates safety policies: {', '.join(moderation_result.flagged_categories)}",
+                detail={
+                    "message": "Content violates safety policies",
+                    "flagged_categories": moderation_result.flagged_categories,
+                    "feedback": moderation_result.get_user_feedback(),
+                },
             )
 
     # Update fields
+    new_title = output_data.title if output_data.title is not None else existing_output.title
     new_content = output_data.content if output_data.content is not None else existing_output.content
     new_category = output_data.category if output_data.category is not None else existing_output.category
     new_tags = output_data.tags if output_data.tags is not None else existing_output.tags
+    new_referenced_entity_type = output_data.referenced_entity_type if output_data.referenced_entity_type is not None else existing_output.referenced_entity_type
+    new_referenced_entity_id = output_data.referenced_entity_id if output_data.referenced_entity_id is not None else existing_output.referenced_entity_id
+    new_referenced_entity_data = output_data.referenced_entity_data if output_data.referenced_entity_data is not None else existing_output.referenced_entity_data
 
-    # Recalculate novelty score if content changed
-    if output_data.content is not None:
-        novelty_score = await calculate_novelty_score(new_content)
-        visibility = await determine_visibility(novelty_score)
+    # Recalculate originality and visibility if content changed
+    if output_data.content is not None and output_data.content != existing_output.content:
+        # === Phase 1.2: Generate embedding for similarity search ===
+        content_embedding = await generate_embedding(new_content)
+
+        # === Phase 1.3: Similar Content Search (Internal Database) ===
+        similar_outputs = []
+        if content_embedding:
+            similar_outputs = await find_similar_outputs(
+                db=db,
+                embedding=content_embedding,
+                threshold=0.7,
+                limit=5,
+                exclude_output_id=existing_output.id,  # Exclude the output being edited
+            )
+
+        # === Phase 1.4: Web Search Check (External Plagiarism) ===
+        web_results = await search_web_for_content(
+            content=new_content,
+            num_phrases=3,
+            results_per_phrase=3,
+        )
+
+        # === Phase 1.5: LLM Originality Judgment ===
+        originality_judgment = await check_originality_with_llm(
+            content=new_content,
+            similar_outputs=similar_outputs,
+            web_search_results=web_results,
+        )
+
+        # Initialize originality fields with defaults
+        originality_score = None
+        ai_generated_probability = None
+        originality_warnings = []
+        originality_reasoning = None
+        novelty_score = None
+        visibility = "private"  # Default to private
+
+        # Determine visibility based on originality judgment
+        if originality_judgment:
+            originality_score = originality_judgment.originality_score
+            ai_generated_probability = originality_judgment.ai_generated_probability
+            originality_reasoning = originality_judgment.reasoning
+
+            # Generate warning messages
+            originality_warnings = generate_originality_warnings(
+                judgment=originality_judgment,
+                similar_outputs=similar_outputs,
+                web_results=web_results,
+            )
+
+            # Check if approved for public based on originality
+            is_approved, approval_reason = should_approve_for_public(
+                judgment=originality_judgment,
+                threshold=60,  # Default threshold from Lighthouse Protocol
+                similar_outputs=similar_outputs,
+                web_results=web_results,
+            )
+
+            if not is_approved:
+                # Demote to private due to low originality
+                visibility = "private"
+                existing_output.ai_review_feedback = approval_reason
+            else:
+                # Calculate novelty score (Phase 2 feature, optional)
+                novelty_score = await calculate_novelty_score(new_content)
+                # Determine visibility (can be public or private based on novelty)
+                visibility = await determine_visibility(novelty_score)
+        else:
+            # No originality judgment available (API error, etc.)
+            # Fallback to novelty-based visibility
+            novelty_score = await calculate_novelty_score(new_content)
+            visibility = await determine_visibility(novelty_score)
+
+        # Update all fields
         existing_output.novelty_score = novelty_score
         existing_output.visibility = VisibilityEnum(visibility)
+        existing_output.originality_score = originality_score
+        existing_output.ai_generated_probability = ai_generated_probability
+        existing_output.originality_warnings = originality_warnings if originality_warnings else None
+        existing_output.originality_reasoning = originality_reasoning
+
+        # Update embedding only for public outputs (for similarity search)
+        if visibility == "public" and content_embedding:
+            existing_output.content_embedding = content_embedding
+        elif visibility == "private":
+            existing_output.content_embedding = None  # Clear embedding for private outputs
+
+        # If previously rejected, now approve it and clear feedback
+        if existing_output.ai_review_status == AIReviewStatus.REJECTED:
+            existing_output.ai_review_status = AIReviewStatus.APPROVED
+            existing_output.ai_review_flagged_categories = None
+            existing_output.ai_review_feedback = None
 
     # Generate new content hash
     new_content_hash = generate_content_hash(content=new_content)
@@ -206,12 +423,19 @@ async def update_output(
         tags=new_tags,
         created_at=updated_at,  # Use updated timestamp for new version
         previous_hash=existing_output.hash,  # Link to previous version
+        referenced_entity_type=new_referenced_entity_type,
+        referenced_entity_id=new_referenced_entity_id,
+        referenced_entity_data=new_referenced_entity_data,
     )
 
     # Update output
+    existing_output.title = new_title
     existing_output.content = new_content
     existing_output.category = new_category
     existing_output.tags = new_tags
+    existing_output.referenced_entity_type = new_referenced_entity_type
+    existing_output.referenced_entity_id = new_referenced_entity_id
+    existing_output.referenced_entity_data = new_referenced_entity_data
     existing_output.content_hash = new_content_hash
     existing_output.previous_hash = existing_output.hash  # Old hash becomes previous
     existing_output.hash = new_full_hash  # New hash
@@ -431,7 +655,28 @@ async def get_timeline(
     result = await db.execute(query)
     outputs = result.scalars().all()
 
-    return [OutputResponse.model_validate(output) for output in outputs]
+    # Get citation information for each output
+    output_responses = []
+    for output in outputs:
+        # Get citations where this output is the source (outgoing citations)
+        citations_result = await db.execute(
+            select(Citation).where(Citation.source_output_id == output.id)
+        )
+        citations = citations_result.scalars().all()
+
+        # Create OutputResponse with citation info
+        output_dict = OutputResponse.model_validate(output).model_dump()
+        output_dict["citing_outputs"] = [
+            {
+                "target_output_id": c.target_output_id,
+                "citation_type": c.citation_type.value,
+                "excerpt": c.excerpt,
+            }
+            for c in citations
+        ]
+        output_responses.append(OutputResponse.model_validate(output_dict))
+
+    return output_responses
 
 
 @router.get("/user/{username}", response_model=list[OutputResponse])
@@ -503,6 +748,55 @@ async def get_user_outputs(
     query = query.order_by(Output.created_at.desc()).offset(offset).limit(limit)
 
     result = await db.execute(query)
+    outputs = result.scalars().all()
+
+    # Get citation information for each output
+    output_responses = []
+    for output in outputs:
+        # Get citations where this output is the source (outgoing citations)
+        citations_result = await db.execute(
+            select(Citation).where(Citation.source_output_id == output.id)
+        )
+        citations = citations_result.scalars().all()
+
+        # Create OutputResponse with citation info
+        output_dict = OutputResponse.model_validate(output).model_dump()
+        output_dict["citing_outputs"] = [
+            {
+                "target_output_id": c.target_output_id,
+                "citation_type": c.citation_type.value,
+                "excerpt": c.excerpt,
+            }
+            for c in citations
+        ]
+        output_responses.append(OutputResponse.model_validate(output_dict))
+
+    return output_responses
+
+
+@router.get("/me/rejected", response_model=list[OutputResponse])
+async def get_my_rejected_outputs(
+    current_user: User = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db),
+) -> list[OutputResponse]:
+    """
+    Get current user's rejected outputs.
+
+    Args:
+        current_user: Current authenticated user
+        db: Database session
+
+    Returns:
+        List of rejected outputs
+    """
+    result = await db.execute(
+        select(Output)
+        .where(
+            Output.user_id == current_user.id,
+            Output.ai_review_status == AIReviewStatus.REJECTED,
+        )
+        .order_by(Output.created_at.desc())
+    )
     outputs = result.scalars().all()
 
     return [OutputResponse.model_validate(output) for output in outputs]

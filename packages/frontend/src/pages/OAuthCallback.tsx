@@ -20,7 +20,7 @@ export function OAuthCallback() {
       const errorParam = searchParams.get('error');
 
       if (errorParam) {
-        setError('OAuth authentication failed. Please try again.');
+        setError('OAuth認証に失敗しました。もう一度お試しください。');
         setTimeout(() => {
           navigate('/login');
         }, 3000);
@@ -28,7 +28,7 @@ export function OAuthCallback() {
       }
 
       if (!accessToken || !refreshToken) {
-        setError('Missing authentication tokens. Please try again.');
+        setError('認証トークンが見つかりません。もう一度お試しください。');
         setTimeout(() => {
           navigate('/login');
         }, 3000);
@@ -68,9 +68,9 @@ export function OAuthCallback() {
               />
             </svg>
           </div>
-          <h2 className="text-xl font-semibold text-gray-900 mb-2">Authentication Failed</h2>
+          <h2 className="text-xl font-semibold text-gray-900 mb-2">認証に失敗しました</h2>
           <p className="text-gray-600 mb-4">{error}</p>
-          <p className="text-sm text-gray-500">Redirecting to login page...</p>
+          <p className="text-sm text-gray-500">ログインページにリダイレクトしています...</p>
         </div>
       </div>
     );
@@ -82,8 +82,8 @@ export function OAuthCallback() {
         <div className="mb-4">
           <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
         </div>
-        <h2 className="text-xl font-semibold text-gray-900 mb-2">Completing Sign In</h2>
-        <p className="text-gray-600">Please wait while we set up your account...</p>
+        <h2 className="text-xl font-semibold text-gray-900 mb-2">ログイン処理中</h2>
+        <p className="text-gray-600">アカウントの準備をしています。お待ちください...</p>
       </div>
     </div>
   );

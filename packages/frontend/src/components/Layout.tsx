@@ -22,7 +22,8 @@ export function Layout() {
           <div className="flex justify-between items-center h-16">
             {/* Logo */}
             <Link to="/" className="flex items-center space-x-2">
-              <span className="text-2xl font-bold text-gray-900">SNS Platform</span>
+              <img src="/lighthouse-logo.png" alt="Lighthouse" className="h-16 w-auto object-contain" />
+              <span className="text-2xl font-bold text-gray-900">Lighthouse</span>
             </Link>
 
             {/* Navigation */}
@@ -33,25 +34,25 @@ export function Layout() {
                     to="/timeline"
                     className="text-gray-700 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium"
                   >
-                    Timeline
+                    タイムライン
                   </Link>
                   <Link
                     to="/create"
                     className="text-gray-700 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium"
                   >
-                    Create Output
+                    投稿
                   </Link>
                   <Link
                     to={`/profile/${user.username}`}
                     className="text-gray-700 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium"
                   >
-                    Profile
+                    プロフィール
                   </Link>
                   <button
                     onClick={handleLogout}
                     className="text-gray-700 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium"
                   >
-                    Logout
+                    ログアウト
                   </button>
                   <div className="flex items-center space-x-2 pl-4 border-l border-gray-300">
                     <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white font-semibold">
@@ -66,13 +67,13 @@ export function Layout() {
                     to="/login"
                     className="text-gray-700 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium"
                   >
-                    Login
+                    ログイン
                   </Link>
                   <Link
                     to="/register"
                     className="bg-blue-600 text-white hover:bg-blue-700 px-4 py-2 rounded-md text-sm font-medium"
                   >
-                    Register
+                    新規登録
                   </Link>
                 </>
               )}
@@ -90,7 +91,7 @@ export function Layout() {
       <footer className="bg-white border-t border-gray-200 mt-auto">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <p className="text-center text-sm text-gray-500">
-            © 2026 SNS Platform - Academic citation-based social network
+            © 2026 Lighthouse - Knowledge Archive for Humanity
           </p>
         </div>
       </footer>

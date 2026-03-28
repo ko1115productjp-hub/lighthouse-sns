@@ -119,10 +119,26 @@ async def login(login_data: LoginRequest, db: AsyncSession = Depends(get_db)) ->
     access_token = create_access_token(token_data)
     refresh_token = create_refresh_token(token_data)
 
+    # Build user response
+    user_response = UserResponse(
+        id=user.id,
+        email=user.email,
+        username=user.username,
+        display_name=user.display_name,
+        bio=user.bio,
+        avatar_url=user.avatar_url,
+        has_agreed_to_protocol=user.has_agreed_to_protocol,
+        followers_count=0,  # TODO: Query actual counts
+        following_count=0,
+        outputs_count=0,
+        created_at=user.created_at,
+    )
+
     return Token(
         access_token=access_token,
         refresh_token=refresh_token,
         expires_in=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+        user=user_response,
     )
 
 
@@ -168,10 +184,26 @@ async def refresh_token(
     access_token = create_access_token(new_token_data)
     new_refresh_token = create_refresh_token(new_token_data)
 
+    # Build user response
+    user_response = UserResponse(
+        id=user.id,
+        email=user.email,
+        username=user.username,
+        display_name=user.display_name,
+        bio=user.bio,
+        avatar_url=user.avatar_url,
+        has_agreed_to_protocol=user.has_agreed_to_protocol,
+        followers_count=0,  # TODO: Query actual counts
+        following_count=0,
+        outputs_count=0,
+        created_at=user.created_at,
+    )
+
     return Token(
         access_token=access_token,
         refresh_token=new_refresh_token,
         expires_in=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+        user=user_response,
     )
 
 

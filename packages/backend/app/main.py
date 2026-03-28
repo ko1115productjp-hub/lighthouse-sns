@@ -1,5 +1,5 @@
 """
-SNS Platform Backend API
+Lighthouse Backend API
 Main FastAPI application entry point
 """
 
@@ -15,7 +15,7 @@ from app.database import engine, Base
 async def lifespan(app: FastAPI):
     """Application lifespan events"""
     # Startup
-    print("🚀 Starting SNS Backend API...")
+    print("🚀 Starting Lighthouse Backend API...")
     print(f"📊 Database URL: {settings.DATABASE_URL}")
 
     # Create tables (for development only, use Alembic in production)
@@ -25,12 +25,12 @@ async def lifespan(app: FastAPI):
     yield
 
     # Shutdown
-    print("👋 Shutting down SNS Backend API...")
+    print("👋 Shutting down Lighthouse Backend API...")
 
 
 app = FastAPI(
-    title="SNS Platform API",
-    description="Academic citation-based social network platform",
+    title="Lighthouse API",
+    description="Knowledge Archive for Humanity - Academic citation-based platform",
     version="0.1.0",
     lifespan=lifespan,
 )
@@ -76,7 +76,7 @@ async def health_check():
 
 
 # Include routers
-from app.routers import auth, users, outputs, citations, agreements, follow, outputs_verify, search, notifications
+from app.routers import auth, users, outputs, citations, agreements, follow, outputs_verify, search, notifications, places
 
 app.include_router(auth.router, prefix="/api/v1")
 app.include_router(users.router, prefix="/api/v1")
@@ -87,3 +87,4 @@ app.include_router(agreements.router, prefix="/api/v1")
 app.include_router(follow.router, prefix="/api/v1")
 app.include_router(search.router, prefix="/api/v1")
 app.include_router(notifications.router, prefix="/api/v1")
+app.include_router(places.router, prefix="/api/v1")

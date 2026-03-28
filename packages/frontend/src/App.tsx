@@ -41,47 +41,51 @@ function Home() {
 
   return (
     <div className="min-h-[calc(100vh-16rem)] flex items-center justify-center">
-      <div className="max-w-4xl mx-auto text-center">
-        <h1 className="text-5xl font-bold text-gray-900 mb-6">SNS Platform</h1>
-        <p className="text-xl text-gray-600 mb-8">
-          Academic citation-based social network for scholarly discussions
+      <div className="max-w-4xl mx-auto text-center px-4">
+        <h1 className="text-5xl font-bold text-gray-900 mb-6">Lighthouse</h1>
+        <p className="text-xl text-gray-600 mb-4">
+          独自性と一次性で評価される、人類の知のアーカイブ
+        </p>
+        <p className="text-base text-gray-500 mb-8 max-w-2xl mx-auto">
+          学術論文だけではない。狂気的なこだわり、著者の息づかいが聞こえる一次情報、まったく新しい切り口の表現。<br />
+          あらゆる「知」がここに灯る。
         </p>
         <div className="flex justify-center space-x-4">
           <a
             href="/register"
             className="bg-blue-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-blue-700 transition"
           >
-            Get Started
+            はじめる
           </a>
           <a
             href="/login"
             className="bg-white text-blue-600 border-2 border-blue-600 px-8 py-3 rounded-lg font-semibold hover:bg-blue-50 transition"
           >
-            Sign In
+            ログイン
           </a>
         </div>
 
         {/* Features */}
         <div className="mt-16 grid grid-cols-1 md:grid-cols-3 gap-8">
           <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-            <div className="text-3xl mb-4">📚</div>
-            <h3 className="text-lg font-semibold mb-2">Academic Citations</h3>
+            <div className="text-3xl mb-4">🔍</div>
+            <h3 className="text-lg font-semibold mb-2">オリジナリティ評価</h3>
             <p className="text-gray-600 text-sm">
-              Reference and cite other works with structured citation types
+              AIと類似検索による多角的な独自性判定で、真に価値ある情報を発掘
             </p>
           </div>
           <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
             <div className="text-3xl mb-4">🔗</div>
-            <h3 className="text-lg font-semibold mb-2">Immutable History</h3>
+            <h3 className="text-lg font-semibold mb-2">改ざん不可能な履歴</h3>
             <p className="text-gray-600 text-sm">
-              Every edit is tracked with cryptographic hash chains
+              すべての編集を暗号学的ハッシュチェーンで記録。永続的な知の系譜
             </p>
           </div>
           <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
             <div className="text-3xl mb-4">✨</div>
-            <h3 className="text-lg font-semibold mb-2">AI Moderation</h3>
+            <h3 className="text-lg font-semibold mb-2">AI査読システム</h3>
             <p className="text-gray-600 text-sm">
-              Novelty-based classification for quality content discovery
+              内容の独自性・新規性のみを評価。権威ではなく、中身で勝負
             </p>
           </div>
         </div>

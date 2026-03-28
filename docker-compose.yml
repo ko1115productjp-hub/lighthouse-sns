@@ -1,6 +1,6 @@
 services:
   postgres:
-    image: postgres:16-alpine
+    image: pgvector/pgvector:pg16
     container_name: sns-postgres
     environment:
       POSTGRES_USER: postgres
@@ -39,6 +39,8 @@ services:
       - ./packages/backend:/app
     ports:
       - '8000:8000'
+    env_file:
+      - ./packages/backend/.env
     environment:
       - DATABASE_URL=postgresql+asyncpg://postgres:postgres@postgres:5432/sns_dev
       - REDIS_URL=redis://redis:6379/0

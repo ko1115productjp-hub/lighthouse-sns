@@ -10,7 +10,7 @@ class Settings(BaseSettings):
     """Application settings"""
 
     # Application
-    APP_NAME: str = "SNS Platform"
+    APP_NAME: str = "Lighthouse"
     DEBUG: bool = True
     API_VERSION: str = "v1"
 
@@ -19,6 +19,7 @@ class Settings(BaseSettings):
 
     # Redis
     REDIS_URL: str = "redis://localhost:6379/0"
+    REDIS_TOKEN: str = ""  # For Upstash Redis (production)
 
     # Security
     SECRET_KEY: str = "your-secret-key-change-in-production"
@@ -31,6 +32,23 @@ class Settings(BaseSettings):
 
     # OpenAI
     OPENAI_API_KEY: str = ""
+
+    # Google APIs
+    GOOGLE_PLACES_API_KEY: str = ""  # For Places API (New)
+    GOOGLE_BOOKS_API_KEY: str = ""  # For Books API
+    GOOGLE_CUSTOM_SEARCH_API_KEY: str = ""  # For Custom Search API (Plagiarism detection) - DEPRECATED
+    GOOGLE_CUSTOM_SEARCH_ENGINE_ID: str = ""  # Custom Search Engine ID - DEPRECATED
+
+    # Serper API (for web search - plagiarism detection)
+    SERPER_API_KEY: str = ""  # https://serper.dev/
+
+    # Originality Check Settings
+    ORIGINALITY_THRESHOLD: int = 60  # Minimum score for public visibility
+    SIMILARITY_THRESHOLD: float = 0.85  # Threshold for similarity detection
+
+    # Movie/Media APIs
+    TMDB_API_KEY: str = ""  # The Movie Database API
+    TMDB_ACCESS_TOKEN: str = ""  # TMDb API Read Access Token
 
     # OAuth - Google
     GOOGLE_CLIENT_ID: str = ""

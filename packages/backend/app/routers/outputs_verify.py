@@ -68,14 +68,43 @@ async def verify_output_hash(
     )
 
     # Verify full hash
+    # DEBUG: Log the parameters for debugging
+    import logging
+    logger = logging.getLogger(__name__)
+
+    # Generate the hash to see what we get
+    from app.utils.hash_chain import generate_full_hash
+    actual_hash = generate_full_hash(
+        content=output.content,
+        user_id=str(output.user_id) if output.user_id else "",
+        category=output.category.value,
+        tags=output.tags or [],  # Convert None to empty list like in creation
+        created_at=output.created_at,
+        previous_hash=output.previous_hash,
+        referenced_entity_type=output.referenced_entity_type,
+        referenced_entity_id=output.referenced_entity_id,
+        referenced_entity_data=output.referenced_entity_data,
+    )
+
+    logger.info(f"Hash verification for output {output_id}:")
+    logger.info(f"  Claimed hash: {output.hash}")
+    logger.info(f"  Actual hash:  {actual_hash}")
+    logger.info(f"  Match: {actual_hash == output.hash}")
+    logger.info(f"  Tags: {output.tags}")
+    logger.info(f"  Referenced entity type: {output.referenced_entity_type}")
+    logger.info(f"  Referenced entity data: {output.referenced_entity_data}")
+
     full_hash_valid = verify_full_hash(
         content=output.content,
         user_id=str(output.user_id) if output.user_id else "",
         category=output.category.value,
-        tags=output.tags,
+        tags=output.tags or [],  # Convert None to empty list like in creation
         created_at=output.created_at,
         claimed_hash=output.hash,
         previous_hash=output.previous_hash,
+        referenced_entity_type=output.referenced_entity_type,
+        referenced_entity_id=output.referenced_entity_id,
+        referenced_entity_data=output.referenced_entity_data,
     )
 
     # Verify hash chain by checking history

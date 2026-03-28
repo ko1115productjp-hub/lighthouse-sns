@@ -25,17 +25,17 @@ export function Register() {
 
     // Validation
     if (password !== confirmPassword) {
-      setLocalError('Passwords do not match');
+      setLocalError('パスワードが一致しません');
       return;
     }
 
     if (password.length < 8) {
-      setLocalError('Password must be at least 8 characters long');
+      setLocalError('パスワードは8文字以上で入力してください');
       return;
     }
 
     if (!ageVerified) {
-      setLocalError('You must verify that you are over 18 years old');
+      setLocalError('18歳以上であることの確認が必要です');
       return;
     }
 
@@ -59,8 +59,8 @@ export function Register() {
     <div className="min-h-[calc(100vh-16rem)] flex items-center justify-center py-8">
       <div className="max-w-md w-full bg-white shadow-lg rounded-lg p-8">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Create Account</h1>
-          <p className="text-gray-600 mt-2">Join the academic citation network</p>
+          <h1 className="text-3xl font-bold text-gray-900">アカウント作成</h1>
+          <p className="text-gray-600 mt-2">知の灯台に参加する</p>
         </div>
 
         {displayError && (
@@ -72,7 +72,7 @@ export function Register() {
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
-              Email *
+              メールアドレス *
             </label>
             <input
               id="email"
@@ -87,7 +87,7 @@ export function Register() {
 
           <div>
             <label htmlFor="username" className="block text-sm font-medium text-gray-700 mb-1">
-              Username *
+              ユーザー名 *
             </label>
             <input
               id="username"
@@ -102,13 +102,13 @@ export function Register() {
               placeholder="username"
             />
             <p className="mt-1 text-xs text-gray-500">
-              3-50 characters, letters, numbers, and underscores only
+              3〜50文字、英数字とアンダースコアのみ使用可能
             </p>
           </div>
 
           <div>
             <label htmlFor="displayName" className="block text-sm font-medium text-gray-700 mb-1">
-              Display Name *
+              表示名 *
             </label>
             <input
               id="displayName"
@@ -118,13 +118,13 @@ export function Register() {
               required
               maxLength={100}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="Your Name"
+              placeholder="あなたの名前"
             />
           </div>
 
           <div>
             <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
-              Password *
+              パスワード *
             </label>
             <input
               id="password"
@@ -143,7 +143,7 @@ export function Register() {
               htmlFor="confirmPassword"
               className="block text-sm font-medium text-gray-700 mb-1"
             >
-              Confirm Password *
+              パスワード（確認） *
             </label>
             <input
               id="confirmPassword"
@@ -168,7 +168,7 @@ export function Register() {
             </div>
             <div className="ml-3">
               <label htmlFor="ageVerified" className="text-sm text-gray-700">
-                I confirm that I am over 18 years old *
+                18歳以上であることを確認します *
               </label>
             </div>
           </div>
@@ -178,7 +178,7 @@ export function Register() {
             disabled={isLoading}
             className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {isLoading ? 'Creating account...' : 'Create Account'}
+            {isLoading ? 'アカウント作成中...' : 'アカウント作成'}
           </button>
         </form>
 
@@ -189,7 +189,7 @@ export function Register() {
               <div className="w-full border-t border-gray-300"></div>
             </div>
             <div className="relative flex justify-center text-sm">
-              <span className="px-2 bg-white text-gray-500">Or continue with</span>
+              <span className="px-2 bg-white text-gray-500">または</span>
             </div>
           </div>
 
@@ -237,9 +237,9 @@ export function Register() {
 
         <div className="mt-6 text-center">
           <p className="text-sm text-gray-600">
-            Already have an account?{' '}
+            すでにアカウントをお持ちの方は{' '}
             <Link to="/login" className="text-blue-600 hover:text-blue-700 font-medium">
-              Sign in here
+              こちらからログイン
             </Link>
           </p>
         </div>

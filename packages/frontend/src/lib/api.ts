@@ -1,5 +1,5 @@
 /**
- * API Client for SNS Platform Backend
+ * API Client for Lighthouse Backend
  */
 
 import axios, { AxiosError } from 'axios';
@@ -52,20 +52,47 @@ export interface User {
   created_at: string;
 }
 
+export interface CitationPreview {
+  target_output_id: string;
+  citation_type: 'agree' | 'criticize' | 'develop' | 'reference';
+  excerpt?: string;
+}
+
 export interface Output {
   id: string;
   user_id: string;
+  title?: string;
   content: string;
   category: string;
   tags: string[];
   visibility: 'public' | 'private';
+  ai_review_status: 'pending' | 'approved' | 'rejected';
+  ai_review_flagged_categories?: string[];
+  ai_review_feedback?: string;
   novelty_score?: number;
+  originality_score?: number; // 0-100, Lighthouse Protocol originality score
+  ai_generated_probability?: number; // 0-100%, probability content is AI-generated
+  originality_warnings?: string[]; // Warning messages from originality checks
+  originality_reasoning?: string; // LLM reasoning explaining the originality score
+  referenced_entity_type?: string;
+  referenced_entity_id?: string;
+  referenced_entity_data?: {
+    name?: string;
+    address?: string;
+    lat?: number;
+    lng?: number;
+    photos?: string[];
+    rating?: number;
+    [key: string]: any; // Allow additional fields for different entity types
+  };
   hash: string;
   content_hash: string;
   previous_hash?: string;
   version: number;
   created_at: string;
   updated_at?: string;
+  // Citation information (outputs this output cites)
+  citing_outputs?: CitationPreview[];
 }
 
 export interface Citation {
@@ -193,11 +220,23 @@ export const usersAPI = {
 
 // Outputs API
 export const outputsAPI = {
-  create: (data: { content: string; category: string; tags?: string[] }) =>
-    api.post<Output>('/outputs/', data),
+  create: (data: {
+    content: string;
+    category: string;
+    tags?: string[];
+    referenced_entity_type?: string;
+    referenced_entity_id?: string;
+    referenced_entity_data?: any;
+  }) => api.post<Output>('/outputs/', data),
 
-  update: (id: string, data: { content?: string; category?: string; tags?: string[] }) =>
-    api.patch<Output>(`/outputs/${id}`, data),
+  update: (id: string, data: {
+    content?: string;
+    category?: string;
+    tags?: string[];
+    referenced_entity_type?: string;
+    referenced_entity_id?: string;
+    referenced_entity_data?: any;
+  }) => api.patch<Output>(`/outputs/${id}`, data),
 
   get: (id: string) => api.get<Output>(`/outputs/${id}`),
 
@@ -208,6 +247,8 @@ export const outputsAPI = {
 
   getUserOutputs: (username: string, limit = 20, offset = 0) =>
     api.get<Output[]>(`/outputs/user/${username}`, { params: { limit, offset } }),
+
+  getMyRejected: () => api.get<Output[]>('/outputs/me/rejected'),
 
   verifyHash: (id: string) => api.get<HashVerificationResponse>(`/outputs/${id}/verify`),
 };

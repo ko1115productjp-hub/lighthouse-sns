@@ -2,6 +2,9 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## 出力の形式
+回答は全て日本語で行ってください。
+
 ## Project Overview
 
 **「Lighthouse of Intellect（知の灯台）」** - 人類の知の地層を形成するパブリック・アーカイブ

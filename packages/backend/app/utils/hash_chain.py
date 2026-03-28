@@ -28,6 +28,9 @@ def generate_full_hash(
     tags: list[str],
     created_at: datetime,
     previous_hash: str | None = None,
+    referenced_entity_type: str | None = None,
+    referenced_entity_id: str | None = None,
+    referenced_entity_data: dict | None = None,
 ) -> str:
     """
     Generate SHA-256 hash for full output (content + metadata + timestamp).
@@ -40,6 +43,9 @@ def generate_full_hash(
         tags: List of tags
         created_at: Creation timestamp (fixed for verification)
         previous_hash: Hash of the previous version (for edit history chain)
+        referenced_entity_type: Type of referenced entity (place, book, movie, etc.)
+        referenced_entity_id: External API ID for the referenced entity
+        referenced_entity_data: Metadata from external APIs
 
     Returns:
         SHA-256 hash string (64 characters)
@@ -52,6 +58,9 @@ def generate_full_hash(
         "tags": sorted(tags),  # Sort tags for consistency
         "created_at": created_at.isoformat(),  # Use stored timestamp
         "previous_hash": previous_hash,
+        "referenced_entity_type": referenced_entity_type,
+        "referenced_entity_id": referenced_entity_id,
+        "referenced_entity_data": referenced_entity_data,
     }
 
     # Convert to JSON string with sorted keys for consistency
@@ -115,6 +124,9 @@ def verify_full_hash(
     created_at: datetime,
     claimed_hash: str,
     previous_hash: str | None = None,
+    referenced_entity_type: str | None = None,
+    referenced_entity_id: str | None = None,
+    referenced_entity_data: dict | None = None,
 ) -> bool:
     """
     Verify that the claimed full hash matches the actual output data.
@@ -127,6 +139,9 @@ def verify_full_hash(
         created_at: Creation timestamp
         claimed_hash: The hash stored in the database
         previous_hash: Hash of the previous version (for edits)
+        referenced_entity_type: Type of referenced entity (place, book, movie, etc.)
+        referenced_entity_id: External API ID for the referenced entity
+        referenced_entity_data: Metadata from external APIs
 
     Returns:
         True if hash is valid, False otherwise
@@ -148,6 +163,9 @@ def verify_full_hash(
         tags=tags,
         created_at=created_at,
         previous_hash=previous_hash,
+        referenced_entity_type=referenced_entity_type,
+        referenced_entity_id=referenced_entity_id,
+        referenced_entity_data=referenced_entity_data,
     )
     return actual_hash == claimed_hash
 

@@ -140,7 +140,8 @@ export function UserProfile() {
     }
   };
 
-  const handleFollowToggle = async () => {
+  // @ts-ignore - Will be used in follow button implementation
+  const _handleFollowToggle = async () => {
     if (!user) return;
 
     try {
@@ -235,7 +236,7 @@ export function UserProfile() {
                 to="/settings/profile"
                 className="px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition text-sm font-medium"
               >
-                Edit Profile
+                プロフィール編集
               </Link>
             ) : (
               <FollowButton
@@ -267,21 +268,21 @@ export function UserProfile() {
             className="hover:text-blue-600 transition"
           >
             <span className="font-semibold text-gray-900">{stats.outputsCount}</span>
-            <span className="text-gray-600 ml-1">Outputs</span>
+            <span className="text-gray-600 ml-1">投稿</span>
           </button>
           <button
             onClick={() => setActiveTab('followers')}
             className="hover:text-blue-600 transition"
           >
             <span className="font-semibold text-gray-900">{stats.followersCount}</span>
-            <span className="text-gray-600 ml-1">Followers</span>
+            <span className="text-gray-600 ml-1">フォロワー</span>
           </button>
           <button
             onClick={() => setActiveTab('following')}
             className="hover:text-blue-600 transition"
           >
             <span className="font-semibold text-gray-900">{stats.followingCount}</span>
-            <span className="text-gray-600 ml-1">Following</span>
+            <span className="text-gray-600 ml-1">フォロー中</span>
           </button>
         </div>
       </div>
@@ -297,7 +298,7 @@ export function UserProfile() {
                 : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
             } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
           >
-            Outputs ({stats.outputsCount})
+            投稿 ({stats.outputsCount})
           </button>
           <button
             onClick={() => setActiveTab('agreements')}
@@ -307,7 +308,7 @@ export function UserProfile() {
                 : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
             } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
           >
-            Agreements
+            同意
           </button>
           <button
             onClick={() => setActiveTab('followers')}
@@ -317,7 +318,7 @@ export function UserProfile() {
                 : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
             } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
           >
-            Followers ({stats.followersCount})
+            フォロワー ({stats.followersCount})
           </button>
           <button
             onClick={() => setActiveTab('following')}
@@ -327,7 +328,7 @@ export function UserProfile() {
                 : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
             } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
           >
-            Following ({stats.followingCount})
+            フォロー中 ({stats.followingCount})
           </button>
         </nav>
       </div>
@@ -337,7 +338,7 @@ export function UserProfile() {
         <div className="space-y-4">
           {outputs.length === 0 ? (
             <div className="bg-white rounded-lg border border-gray-200 p-8 text-center">
-              <p className="text-gray-600">No outputs yet</p>
+              <p className="text-gray-600">まだ投稿がありません</p>
             </div>
           ) : (
             outputs.map((output) => (

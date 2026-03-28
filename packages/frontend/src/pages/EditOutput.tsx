@@ -49,7 +49,7 @@ export function EditOutput() {
       setCategory(outputData.category);
       setTagsInput(outputData.tags ? outputData.tags.join(', ') : '');
     } catch (err: any) {
-      setError(err.response?.data?.detail || 'Failed to load output');
+      setError(err.response?.data?.detail || '投稿の読み込みに失敗しました');
     } finally {
       setIsLoading(false);
     }
@@ -62,7 +62,7 @@ export function EditOutput() {
     if (!id) return;
 
     if (content.trim().length < 10) {
-      setError('Content must be at least 10 characters long');
+      setError('本文は10文字以上で入力してください');
       return;
     }
 
@@ -87,7 +87,7 @@ export function EditOutput() {
         state: { updated: true },
       });
     } catch (err: any) {
-      setError(err.response?.data?.detail || 'Failed to update output');
+      setError(err.response?.data?.detail || '投稿の更新に失敗しました');
     } finally {
       setIsSaving(false);
     }
@@ -104,7 +104,7 @@ export function EditOutput() {
     return (
       <div className="max-w-4xl mx-auto text-center py-12">
         <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-        <p className="mt-4 text-gray-600">Loading output...</p>
+        <p className="mt-4 text-gray-600">読み込み中...</p>
       </div>
     );
   }
@@ -113,13 +113,13 @@ export function EditOutput() {
     return (
       <div className="max-w-4xl mx-auto">
         <div className="bg-red-50 border border-red-200 rounded-lg p-6">
-          <h2 className="text-lg font-semibold text-red-900 mb-2">Error Loading Output</h2>
+          <h2 className="text-lg font-semibold text-red-900 mb-2">投稿の読み込みエラー</h2>
           <p className="text-red-800">{error}</p>
           <button
             onClick={() => navigate('/timeline')}
             className="mt-4 text-blue-600 hover:text-blue-700 font-medium"
           >
-            ← Back to Timeline
+            ← タイムラインに戻る
           </button>
         </div>
       </div>
@@ -129,8 +129,8 @@ export function EditOutput() {
   return (
     <div className="max-w-4xl mx-auto">
       <div className="mb-6">
-        <h1 className="text-3xl font-bold text-gray-900">Edit Output</h1>
-        <p className="text-gray-600 mt-2">Update your output content</p>
+        <h1 className="text-3xl font-bold text-gray-900">投稿を編集</h1>
+        <p className="text-gray-600 mt-2">投稿内容を更新する</p>
       </div>
 
       {/* Output Info */}
@@ -138,26 +138,26 @@ export function EditOutput() {
         <div className="mb-6 bg-gray-50 border border-gray-200 rounded-lg p-4">
           <div className="grid grid-cols-2 gap-4 text-sm">
             <div>
-              <span className="text-gray-600">Output ID:</span>{' '}
+              <span className="text-gray-600">投稿ID:</span>{' '}
               <span className="font-mono text-gray-900">{output.id}</span>
             </div>
             <div>
-              <span className="text-gray-600">Current Version:</span>{' '}
+              <span className="text-gray-600">現在のバージョン:</span>{' '}
               <span className="font-semibold text-gray-900">{output.version}</span>
             </div>
             <div>
-              <span className="text-gray-600">Visibility:</span>{' '}
+              <span className="text-gray-600">公開設定:</span>{' '}
               <span
                 className={`font-medium ${
                   output.visibility === 'public' ? 'text-green-700' : 'text-gray-700'
                 }`}
               >
-                {output.visibility === 'public' ? '🌐 Public' : '🔒 Private'}
+                {output.visibility === 'public' ? '🌐 公開' : '🔒 非公開'}
               </span>
             </div>
             {output.novelty_score !== undefined && (
               <div>
-                <span className="text-gray-600">Novelty Score:</span>{' '}
+                <span className="text-gray-600">独自性スコア:</span>{' '}
                 <span className="font-semibold text-gray-900">
                   {(output.novelty_score * 100).toFixed(1)}%
                 </span>
@@ -177,7 +177,7 @@ export function EditOutput() {
         {/* Category Selection */}
         <div>
           <label htmlFor="category" className="block text-sm font-medium text-gray-700 mb-2">
-            Category *
+            カテゴリー *
           </label>
           <select
             id="category"
@@ -198,21 +198,21 @@ export function EditOutput() {
         <div>
           <div className="flex items-center justify-between mb-2">
             <label htmlFor="content" className="block text-sm font-medium text-gray-700">
-              Content *
+              本文 *
             </label>
             <button
               type="button"
               onClick={() => setShowPreview(!showPreview)}
               className="text-sm text-blue-600 hover:text-blue-700"
             >
-              {showPreview ? 'Edit' : 'Preview'}
+              {showPreview ? '編集' : 'プレビュー'}
             </button>
           </div>
 
           {showPreview ? (
             <div className="w-full min-h-[400px] px-4 py-3 border border-gray-300 rounded-md bg-gray-50">
               <div className="prose max-w-none">
-                <p className="whitespace-pre-wrap">{content || 'Nothing to preview...'}</p>
+                <p className="whitespace-pre-wrap">{content || 'プレビューする内容がありません...'}</p>
               </div>
             </div>
           ) : (
@@ -223,22 +223,22 @@ export function EditOutput() {
               required
               rows={16}
               className="w-full px-4 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm"
-              placeholder="Write your output here... (Markdown supported)"
+              placeholder="ここに投稿内容を書く... (Markdown対応)"
             />
           )}
 
           <div className="mt-2 flex items-center justify-between text-xs text-gray-500">
             <p>
-              {characterCount} characters, {wordCount} words
+              {characterCount}文字、{wordCount}単語
             </p>
-            <p>Minimum 10 characters required</p>
+            <p>最低10文字必要です</p>
           </div>
         </div>
 
         {/* Tags Input */}
         <div>
           <label htmlFor="tags" className="block text-sm font-medium text-gray-700 mb-2">
-            Tags (Optional)
+            タグ（任意）
           </label>
           <input
             id="tags"
@@ -246,10 +246,10 @@ export function EditOutput() {
             value={tagsInput}
             onChange={(e) => setTagsInput(e.target.value)}
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            placeholder="machine-learning, philosophy, climate-change"
+            placeholder="機械学習, 哲学, 気候変動"
           />
           <p className="mt-1 text-xs text-gray-500">
-            Separate tags with commas. Tags help others discover your output.
+            タグはカンマで区切ってください。タグを付けると他の人が投稿を見つけやすくなります。
           </p>
           {tagsInput && (
             <div className="mt-2 flex flex-wrap gap-2">
@@ -270,13 +270,13 @@ export function EditOutput() {
 
         {/* Warning Box */}
         <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-          <h3 className="text-sm font-semibold text-yellow-900 mb-2">⚠️ Important Notes</h3>
+          <h3 className="text-sm font-semibold text-yellow-900 mb-2">⚠️ 重要な注意事項</h3>
           <ul className="text-sm text-yellow-800 space-y-1">
-            <li>• All edits are permanently recorded in the version history</li>
-            <li>• The previous version will remain accessible via hash chain</li>
-            <li>• AI moderation will re-evaluate the updated content</li>
-            <li>• Novelty score may be recalculated</li>
-            <li>• Visibility (Public/Private) may change based on new novelty score</li>
+            <li>• すべての編集はバージョン履歴に永続的に記録されます</li>
+            <li>• 以前のバージョンはハッシュチェーンを介してアクセス可能です</li>
+            <li>• AI査読により更新内容が再評価されます</li>
+            <li>• 独自性スコアが再計算される可能性があります</li>
+            <li>• 新しい独自性スコアに基づいて公開設定（公開/非公開）が変更される可能性があります</li>
           </ul>
         </div>
 
@@ -287,14 +287,14 @@ export function EditOutput() {
             onClick={() => navigate(`/output/${id}`)}
             className="px-6 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition"
           >
-            Cancel
+            キャンセル
           </button>
           <button
             type="submit"
             disabled={isSaving || !hasChanges || content.trim().length < 10}
             className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition"
           >
-            {isSaving ? 'Saving...' : hasChanges ? 'Save Changes' : 'No Changes'}
+            {isSaving ? '保存中...' : hasChanges ? '変更を保存' : '変更なし'}
           </button>
         </div>
       </form>

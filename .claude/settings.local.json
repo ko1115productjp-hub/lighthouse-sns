@@ -22,7 +22,23 @@
       "Bash(poetry run uvicorn:*)",
       "Bash(docker exec:*)",
       "Bash(git init:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git remote add:*)",
+      "Bash(git branch:*)",
+      "Bash(git push:*)",
+      "Bash(echo:*)",
+      "Bash(git config:*)",
+      "Bash(git remote set-url:*)",
+      "Bash(npx tsc:*)",
+      "Bash(docker-compose run:*)",
+      "Bash(docker ps:*)",
+      "Bash(docker logs:*)",
+      "Bash(docker restart:*)",
+      "Bash(poetry install:*)",
+      "Bash(docker pull:*)",
+      "Bash(poetry run alembic:*)",
+      "Bash(poetry export:*)"
     ]
   }
 }

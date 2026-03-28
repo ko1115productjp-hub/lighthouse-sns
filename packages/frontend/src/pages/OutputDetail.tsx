@@ -195,10 +195,10 @@ export function OutputDetail() {
 
   const getCitationTypeLabel = (type: string) => {
     const labels: Record<string, string> = {
-      agree: '✅ Agree',
-      criticize: '🔍 Criticize',
-      develop: '🚀 Develop',
-      reference: '📚 Reference',
+      agree: '✅ 同意',
+      criticize: '🔍  批判',
+      develop: '🚀  発展',
+      reference: '📚 参照',
     };
     return labels[type] || type;
   };
@@ -246,17 +246,17 @@ export function OutputDetail() {
       {/* Success Message */}
       {location.state?.noveltyScore !== undefined && (
         <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
-          <h3 className="text-green-900 font-semibold mb-1">✅ Output Created Successfully!</h3>
+          <h3 className="text-green-900 font-semibold mb-1">✅ 投稿が作成されました！</h3>
           <p className="text-green-800 text-sm">
-            Novelty Score: <strong>{(location.state.noveltyScore * 100).toFixed(1)}%</strong>
-            {location.state.noveltyScore >= 0.5 ? ' - Published as Public' : ' - Published as Private'}
+            独自性スコア: <strong>{(location.state.noveltyScore * 100).toFixed(1)}%</strong>
+            {location.state.noveltyScore >= 0.5 ? ' - 公開投稿として投稿されました' : ' - 非公開投稿として投稿されました'}
           </p>
         </div>
       )}
 
       {location.state?.updated && (
         <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
-          <h3 className="text-green-900 font-semibold">✅ Output Updated Successfully!</h3>
+          <h3 className="text-green-900 font-semibold">✅ 投稿が更新されました！</h3>
         </div>
       )}
 
@@ -278,16 +278,23 @@ export function OutputDetail() {
             </span>
             {output.visibility === 'private' && (
               <span className="px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700">
-                🔒 Private
+                🔒 非公開
               </span>
             )}
             {output.novelty_score !== undefined && output.novelty_score >= 0.5 && (
               <span className="px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700">
-                ✨ High Novelty
+                ✨ 高い独自性
               </span>
             )}
           </div>
         </div>
+
+        {/* Title */}
+        {output.title && (
+          <div className="mb-4">
+            <h2 className="text-2xl font-bold text-gray-900">{output.title}</h2>
+          </div>
+        )}
 
         {/* Content */}
         <div className="prose max-w-none mb-4">
@@ -305,27 +312,88 @@ export function OutputDetail() {
           </div>
         )}
 
+        {/* Originality Warnings */}
+        {output.originality_warnings && output.originality_warnings.length > 0 && (
+          <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+            <h4 className="text-sm font-semibold text-yellow-900 mb-2">⚠️ オリジナリティに関する警告</h4>
+            <ul className="space-y-2">
+              {output.originality_warnings.map((warning, index) => {
+                // Convert URLs to clickable links
+                const urlRegex = /(https?:\/\/[^\s]+)/g;
+                const parts = warning.split(urlRegex);
+
+                return (
+                  <li key={index} className="text-xs text-yellow-800 whitespace-pre-line">
+                    {parts.map((part, i) => {
+                      if (part.match(urlRegex)) {
+                        return (
+                          <a
+                            key={i}
+                            href={part}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-blue-600 hover:text-blue-800 underline break-all"
+                          >
+                            {part}
+                          </a>
+                        );
+                      }
+                      return <span key={i}>{part}</span>;
+                    })}
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        )}
+
+        {/* Originality Score Reasoning */}
+        {output.originality_reasoning && (
+          <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+            <h4 className="text-sm font-semibold text-blue-900 mb-2">💡 オリジナリティスコアの判定理由</h4>
+            <p className="text-xs text-blue-800 whitespace-pre-line leading-relaxed">
+              {output.originality_reasoning}
+            </p>
+          </div>
+        )}
+
         {/* Metadata */}
         <div className="grid grid-cols-2 gap-4 pt-4 border-t border-gray-100 text-sm text-gray-600">
           <div>
-            <span className="font-medium">Output ID:</span>{' '}
+            <span className="font-medium">投稿ID:</span>{' '}
             <span className="font-mono text-xs">{output.id}</span>
           </div>
           <div>
-            <span className="font-medium">Version:</span> {output.version}
+            <span className="font-medium">バージョン:</span> {output.version}
           </div>
           {output.novelty_score !== undefined && (
             <div>
-              <span className="font-medium">Novelty Score:</span>{' '}
+              <span className="font-medium">独自性スコア:</span>{' '}
               {(output.novelty_score * 100).toFixed(1)}%
             </div>
           )}
+          {output.originality_score !== undefined && (
+            <div>
+              <span className="font-medium">オリジナリティスコア:</span>{' '}
+              <span className={output.originality_score >= 60 ? 'text-green-600' : 'text-red-600'}>
+                {output.originality_score}/100
+              </span>
+            </div>
+          )}
+          {output.ai_generated_probability !== undefined && (
+            <div>
+              <span className="font-medium">AI生成確率:</span>{' '}
+              <span className={output.ai_generated_probability > 80 ? 'text-yellow-600' : 'text-gray-600'}>
+                {output.ai_generated_probability}%
+              </span>
+            </div>
+          )}
           <div>
-            <span className="font-medium">Agreements:</span> {agreements.length}
+            <span className="font-medium">同意:</span> {agreements.length}
           </div>
           {outputFollowStats && (
             <div>
-              <span className="font-medium">Followers:</span> {outputFollowStats.follower_count}
+              <span className="font-medium">フォロワー:</span> {outputFollowStats.follower_count}
             </div>
           )}
         </div>
@@ -341,13 +409,13 @@ export function OutputDetail() {
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
               }`}
             >
-              {hasAgreed ? '✓ Agreed' : 'Agree'} ({agreements.length})
+              {hasAgreed ? '✓ 同意済み' : '同意'} ({agreements.length})
             </button>
             <Link
               to={`/create?cite=${output.id}`}
               className="px-4 py-2 bg-gray-100 text-gray-700 rounded-md text-sm font-medium hover:bg-gray-200 transition"
             >
-              📝 Cite This
+              📝 引用する
             </Link>
             {outputFollowStats && (
               <OutputFollowButton
@@ -370,7 +438,7 @@ export function OutputDetail() {
               to={`/output/${output.id}/edit`}
               className="px-4 py-2 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700 transition"
             >
-              Edit
+              編集
             </Link>
           )}
         </div>
@@ -387,7 +455,7 @@ export function OutputDetail() {
                 : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
             } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
           >
-            Details
+            詳細
           </button>
           <button
             onClick={() => setActiveTab('history')}
@@ -397,7 +465,7 @@ export function OutputDetail() {
                 : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
             } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
           >
-            Version History ({history.length})
+            バージョン履歴 ({history.length})
           </button>
           <button
             onClick={() => setActiveTab('citations')}
@@ -407,7 +475,7 @@ export function OutputDetail() {
                 : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
             } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
           >
-            Citations ({citationStats?.incoming_citations || 0} / {citationStats?.outgoing_citations || 0})
+            引用 ({citationStats?.incoming_citations || 0} / {citationStats?.outgoing_citations || 0})
           </button>
         </nav>
       </div>
@@ -415,28 +483,28 @@ export function OutputDetail() {
       {/* Tab Content */}
       {activeTab === 'content' && (
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Technical Details</h3>
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">技術的詳細</h3>
           <dl className="space-y-3 text-sm">
             <div>
-              <dt className="font-medium text-gray-700">Content Hash (SHA-256)</dt>
+              <dt className="font-medium text-gray-700">コンテンツハッシュ (SHA-256)</dt>
               <dd className="mt-1 font-mono text-xs text-gray-600 break-all">
                 {output.content_hash}
               </dd>
             </div>
             {output.previous_hash && (
               <div>
-                <dt className="font-medium text-gray-700">Previous Hash</dt>
+                <dt className="font-medium text-gray-700">前のハッシュ</dt>
                 <dd className="mt-1 font-mono text-xs text-gray-600 break-all">
                   {output.previous_hash}
                 </dd>
               </div>
             )}
             <div>
-              <dt className="font-medium text-gray-700">Created At</dt>
+              <dt className="font-medium text-gray-700">作成日時</dt>
               <dd className="mt-1 text-gray-600">{formatDate(output.created_at)}</dd>
             </div>
             <div>
-              <dt className="font-medium text-gray-700">Last Updated</dt>
+              <dt className="font-medium text-gray-700">最終更新日時</dt>
               <dd className="mt-1 text-gray-600">{formatDate(output.updated_at || output.created_at)}</dd>
             </div>
           </dl>
@@ -455,16 +523,16 @@ export function OutputDetail() {
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                     </svg>
-                    Verifying...
+                    検証中...
                   </>
                 ) : (
                   <>
-                    🔐 Verify Hash Integrity
+                    🔐 ハッシュの整合性を検証
                   </>
                 )}
               </button>
               <p className="mt-2 text-xs text-gray-500 text-center">
-                This feature is only available for public outputs to ensure transparency and immutability.
+                この機能は透明性と不変性を保証するため、公開投稿でのみ利用可能です。
               </p>
             </div>
           )}
@@ -474,7 +542,7 @@ export function OutputDetail() {
             <div className="mt-6 pt-4 border-t border-gray-200">
               <div className="p-3 bg-gray-50 rounded-lg">
                 <p className="text-xs text-gray-600 text-center">
-                  Hash verification is not available for private outputs.
+                  ハッシュ検証は非公開投稿では利用できません。
                 </p>
               </div>
             </div>
@@ -484,9 +552,9 @@ export function OutputDetail() {
 
       {activeTab === 'history' && (
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Version History</h3>
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">バージョン履歴</h3>
           {history.length === 0 ? (
-            <p className="text-gray-600 text-sm">No version history available</p>
+            <p className="text-gray-600 text-sm">バージョン履歴がありません</p>
           ) : (
             <div className="space-y-4">
               {history.map((version, index) => (
@@ -514,14 +582,14 @@ export function OutputDetail() {
       {activeTab === 'citations' && (
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-gray-900">Citations</h3>
+            <h3 className="text-lg font-semibold text-gray-900">引用</h3>
             {citationStats && (
               <div className="flex items-center space-x-4 text-sm text-gray-600">
                 <span>
-                  <span className="font-medium">Cited by:</span> {citationStats.incoming_citations}
+                  <span className="font-medium">引用元:</span> {citationStats.incoming_citations}
                 </span>
                 <span>
-                  <span className="font-medium">Cites:</span> {citationStats.outgoing_citations}
+                  <span className="font-medium">引用先:</span> {citationStats.outgoing_citations}
                 </span>
               </div>
             )}
@@ -530,7 +598,7 @@ export function OutputDetail() {
           {/* Citation Stats by Type */}
           {citationStats && citationStats.incoming_citations > 0 && (
             <div className="mb-4 p-3 bg-gray-50 rounded-lg">
-              <p className="text-xs font-medium text-gray-700 mb-2">Incoming Citations by Type:</p>
+              <p className="text-xs font-medium text-gray-700 mb-2">種類別の引用元:</p>
               <div className="flex flex-wrap gap-2">
                 {Object.entries(citationStats.incoming_by_type).map(([type, count]) => (
                   count > 0 && (
@@ -554,7 +622,7 @@ export function OutputDetail() {
                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                 } whitespace-nowrap pb-3 px-1 border-b-2 font-medium text-sm`}
               >
-                Cited By ({citingOutputs.length})
+                引用元 ({citingOutputs.length})
               </button>
               <button
                 onClick={() => setCitationSubTab('cited')}
@@ -564,7 +632,7 @@ export function OutputDetail() {
                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                 } whitespace-nowrap pb-3 px-1 border-b-2 font-medium text-sm`}
               >
-                Cites ({citedOutputs.length})
+                引用先 ({citedOutputs.length})
               </button>
             </nav>
           </div>
@@ -573,7 +641,7 @@ export function OutputDetail() {
           {citationSubTab === 'citing' && (
             <div className="space-y-3">
               {citingOutputs.length === 0 ? (
-                <p className="text-gray-600 text-sm">No outputs cite this work yet</p>
+                <p className="text-gray-600 text-sm">この投稿を引用している投稿はまだありません</p>
               ) : (
                 citingOutputs.map((citation) => (
                   <div key={citation.id} className="border border-gray-200 rounded-lg p-4 hover:border-blue-300 transition">
@@ -613,7 +681,7 @@ export function OutputDetail() {
                       <p className="text-sm text-gray-700 line-clamp-2">
                         {citation.source_output.content}
                       </p>
-                      <p className="text-xs text-blue-600 mt-2">View full output →</p>
+                      <p className="text-xs text-blue-600 mt-2">全文を表示 →</p>
                     </Link>
                   </div>
                 ))
@@ -625,7 +693,7 @@ export function OutputDetail() {
           {citationSubTab === 'cited' && (
             <div className="space-y-3">
               {citedOutputs.length === 0 ? (
-                <p className="text-gray-600 text-sm">This output doesn't cite any other works</p>
+                <p className="text-gray-600 text-sm">この投稿は他の投稿を引用していません</p>
               ) : (
                 citedOutputs.map((citation) => (
                   <div key={citation.id} className="border border-gray-200 rounded-lg p-4 hover:border-blue-300 transition">
@@ -665,7 +733,7 @@ export function OutputDetail() {
                       <p className="text-sm text-gray-700 line-clamp-2">
                         {citation.source_output.content}
                       </p>
-                      <p className="text-xs text-blue-600 mt-2">View full output →</p>
+                      <p className="text-xs text-blue-600 mt-2">全文を表示 →</p>
                     </Link>
                   </div>
                 ))
@@ -680,7 +748,7 @@ export function OutputDetail() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg max-w-2xl w-full p-6">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-xl font-semibold text-gray-900">Hash Verification Result</h3>
+              <h3 className="text-xl font-semibold text-gray-900">ハッシュ検証結果</h3>
               <button
                 onClick={() => setShowVerificationModal(false)}
                 className="text-gray-400 hover:text-gray-600"
@@ -709,40 +777,40 @@ export function OutputDetail() {
             {/* Detailed Checks */}
             <div className="space-y-3">
               <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                <span className="text-sm font-medium text-gray-700">Content Hash</span>
+                <span className="text-sm font-medium text-gray-700">コンテンツハッシュ</span>
                 <span className={`text-sm font-semibold ${
                   verificationResult.content_hash_valid ? 'text-green-600' : 'text-red-600'
                 }`}>
-                  {verificationResult.content_hash_valid ? '✓ Valid' : '✗ Invalid'}
+                  {verificationResult.content_hash_valid ? '✓ 正常' : '✗ 不正'}
                 </span>
               </div>
 
               <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                <span className="text-sm font-medium text-gray-700">Full Hash (Content + Metadata)</span>
+                <span className="text-sm font-medium text-gray-700">フルハッシュ（コンテンツ + メタデータ）</span>
                 <span className={`text-sm font-semibold ${
                   verificationResult.full_hash_valid ? 'text-green-600' : 'text-red-600'
                 }`}>
-                  {verificationResult.full_hash_valid ? '✓ Valid' : '✗ Invalid'}
+                  {verificationResult.full_hash_valid ? '✓ 正常' : '✗ 不正'}
                 </span>
               </div>
 
               <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                <span className="text-sm font-medium text-gray-700">Hash Chain Integrity</span>
+                <span className="text-sm font-medium text-gray-700">ハッシュチェーン整合性</span>
                 <span className={`text-sm font-semibold ${
                   verificationResult.hash_chain_valid ? 'text-green-600' : 'text-red-600'
                 }`}>
-                  {verificationResult.hash_chain_valid ? '✓ Valid' : '✗ Invalid'}
+                  {verificationResult.hash_chain_valid ? '✓ 正常' : '✗ 不正'}
                 </span>
               </div>
             </div>
 
             {/* Info Box */}
             <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-              <h4 className="text-sm font-semibold text-blue-900 mb-2">What does this mean?</h4>
+              <h4 className="text-sm font-semibold text-blue-900 mb-2">これは何を意味しますか？</h4>
               <p className="text-xs text-blue-800">
-                This verification proves the integrity of the content using cryptographic hashes.
-                A valid result means the output has not been tampered with since creation.
-                The hash chain ensures that all edit history is properly linked and immutable.
+                この検証は、暗号ハッシュを使用してコンテンツの整合性を証明します。
+                正常な結果は、投稿が作成時から改ざんされていないことを意味します。
+                ハッシュチェーンは、すべての編集履歴が適切にリンクされ、不変であることを保証します。
               </p>
             </div>
 
@@ -751,7 +819,7 @@ export function OutputDetail() {
                 onClick={() => setShowVerificationModal(false)}
                 className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition text-sm font-medium"
               >
-                Close
+                閉じる
               </button>
             </div>
           </div>
