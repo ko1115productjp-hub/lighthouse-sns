@@ -137,7 +137,9 @@ export function Timeline() {
                 <div className="flex items-center space-x-3">
                   <div className="w-10 h-10 bg-gray-300 rounded-full"></div>
                   <div>
-                    <p className="text-sm font-medium text-gray-900">User #{output.user_id.slice(0, 8)}</p>
+                    <p className="text-sm font-medium text-gray-900">
+                      User #{output.user_id ? String(output.user_id).slice(0, 8) : 'Unknown'}
+                    </p>
                     <p className="text-xs text-gray-500">{formatDate(output.created_at)}</p>
                   </div>
                 </div>
