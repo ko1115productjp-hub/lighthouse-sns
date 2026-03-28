@@ -8,14 +8,19 @@ from sqlalchemy.orm import declarative_base
 from app.config import settings
 
 # Create async engine
-# Use prepared_statement_cache_size=0 for Supabase Transaction Pooler (pgbouncer) compatibility
+# Use statement_cache_size=0 for Supabase Transaction Pooler (pgbouncer) compatibility
+# pgbouncer in transaction mode does not support prepared statements
 engine = create_async_engine(
     settings.DATABASE_URL,
     echo=settings.DEBUG,
     future=True,
+    pool_pre_ping=True,  # Verify connections before use
+    pool_recycle=300,  # Recycle connections every 5 minutes
     connect_args={
-        "prepared_statement_cache_size": 0,  # Required for pgbouncer compatibility
-        "statement_cache_size": 0,  # Also disable statement cache
+        "statement_cache_size": 0,  # Disable prepared statement cache for pgbouncer
+        "server_settings": {
+            "application_name": "lighthouse_backend",
+        },
     },
 )
 
