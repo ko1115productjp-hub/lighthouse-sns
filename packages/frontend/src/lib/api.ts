@@ -221,6 +221,7 @@ export const usersAPI = {
 // Outputs API
 export const outputsAPI = {
   create: (data: {
+    title?: string;
     content: string;
     category: string;
     tags?: string[];
@@ -230,6 +231,7 @@ export const outputsAPI = {
   }) => api.post<Output>('/outputs/', data),
 
   update: (id: string, data: {
+    title?: string;
     content?: string;
     category?: string;
     tags?: string[];
