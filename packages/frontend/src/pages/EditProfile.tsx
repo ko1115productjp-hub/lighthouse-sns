@@ -166,7 +166,7 @@ export function EditProfile() {
             </label>
             <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
               <div className="w-20 h-20 bg-gray-300 rounded-full mx-auto mb-3 flex items-center justify-center text-2xl font-bold text-gray-600">
-                {displayName.charAt(0).toUpperCase() || 'U'}
+                {displayName?.charAt(0).toUpperCase() || 'U'}
               </div>
               <p className="text-sm text-gray-500">画像アップロード機能は近日公開予定</p>
             </div>

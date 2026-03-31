@@ -216,7 +216,7 @@ export function UserProfile() {
           <div className="flex items-center space-x-4">
             {/* Avatar */}
             <div className="w-20 h-20 bg-gray-300 rounded-full flex items-center justify-center text-2xl font-bold text-gray-600">
-              {user.display_name.charAt(0).toUpperCase()}
+              {user.display_name?.charAt(0).toUpperCase() || 'U'}
             </div>
 
             {/* User Info */}
@@ -429,7 +429,7 @@ export function UserProfile() {
                   <Link to={`/profile/${follower.username}`} className="flex items-center justify-between">
                     <div className="flex items-center space-x-3">
                       <div className="w-12 h-12 bg-gray-300 rounded-full flex items-center justify-center text-lg font-bold text-gray-600">
-                        {follower.display_name.charAt(0).toUpperCase()}
+                        {follower.display_name?.charAt(0).toUpperCase() || 'U'}
                       </div>
                       <div>
                         <p className="font-medium text-gray-900">{follower.display_name}</p>
@@ -458,7 +458,7 @@ export function UserProfile() {
                   <Link to={`/profile/${followedUser.username}`} className="flex items-center justify-between">
                     <div className="flex items-center space-x-3">
                       <div className="w-12 h-12 bg-gray-300 rounded-full flex items-center justify-center text-lg font-bold text-gray-600">
-                        {followedUser.display_name.charAt(0).toUpperCase()}
+                        {followedUser.display_name?.charAt(0).toUpperCase() || 'U'}
                       </div>
                       <div>
                         <p className="font-medium text-gray-900">{followedUser.display_name}</p>

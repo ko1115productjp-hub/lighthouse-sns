@@ -56,7 +56,7 @@ export function Layout() {
                   </button>
                   <div className="flex items-center space-x-2 pl-4 border-l border-gray-300">
                     <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white font-semibold">
-                      {user.display_name.charAt(0).toUpperCase()}
+                      {user.display_name?.charAt(0).toUpperCase() || 'U'}
                     </div>
                     <span className="text-sm font-medium text-gray-700">{user.username}</span>
                   </div>
