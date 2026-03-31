@@ -47,7 +47,8 @@ export function OAuthCallback() {
     };
 
     handleCallback();
-  }, [searchParams, navigate, checkAuth]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
 
   if (error) {
     return (
