@@ -313,8 +313,7 @@ async def google_callback(code: str, db: AsyncSession = Depends(get_db)):
         jwt_refresh_token = create_refresh_token(token_data_dict)
 
         # Redirect to frontend with tokens
-        frontend_url = settings.CORS_ORIGINS[0] if isinstance(settings.CORS_ORIGINS, list) else settings.CORS_ORIGINS
-        redirect_url = f"{frontend_url}/oauth-callback?access_token={jwt_access_token}&refresh_token={jwt_refresh_token}"
+        redirect_url = f"{settings.FRONTEND_URL}/oauth-callback?access_token={jwt_access_token}&refresh_token={jwt_refresh_token}"
         return RedirectResponse(url=redirect_url)
 
     except Exception as e:
@@ -323,8 +322,7 @@ async def google_callback(code: str, db: AsyncSession = Depends(get_db)):
 
         # Redirect to frontend with error
         try:
-            frontend_url = settings.CORS_ORIGINS[0] if isinstance(settings.CORS_ORIGINS, list) else settings.CORS_ORIGINS
-            return RedirectResponse(url=f"{frontend_url}/login?error=oauth_failed")
+            return RedirectResponse(url=f"{settings.FRONTEND_URL}/login?error=oauth_failed")
         except Exception as redirect_error:
             logging.error(f"Failed to redirect after OAuth error: {str(redirect_error)}")
             return RedirectResponse(url="https://lighthouse-sns-frontend.vercel.app/login?error=oauth_failed")
@@ -414,8 +412,7 @@ async def line_callback(code: str, db: AsyncSession = Depends(get_db)):
         jwt_refresh_token = create_refresh_token(token_data_dict)
 
         # Redirect to frontend with tokens
-        frontend_url = settings.CORS_ORIGINS[0] if isinstance(settings.CORS_ORIGINS, list) else settings.CORS_ORIGINS
-        redirect_url = f"{frontend_url}/oauth-callback?access_token={jwt_access_token}&refresh_token={jwt_refresh_token}"
+        redirect_url = f"{settings.FRONTEND_URL}/oauth-callback?access_token={jwt_access_token}&refresh_token={jwt_refresh_token}"
         return RedirectResponse(url=redirect_url)
 
     except Exception as e:
@@ -424,8 +421,7 @@ async def line_callback(code: str, db: AsyncSession = Depends(get_db)):
 
         # Redirect to frontend with error
         try:
-            frontend_url = settings.CORS_ORIGINS[0] if isinstance(settings.CORS_ORIGINS, list) else settings.CORS_ORIGINS
-            return RedirectResponse(url=f"{frontend_url}/login?error=oauth_failed")
+            return RedirectResponse(url=f"{settings.FRONTEND_URL}/login?error=oauth_failed")
         except Exception as redirect_error:
             logging.error(f"Failed to redirect after OAuth error: {str(redirect_error)}")
             return RedirectResponse(url="https://lighthouse-sns-frontend.vercel.app/login?error=oauth_failed")

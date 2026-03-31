@@ -29,6 +29,7 @@ class Settings(BaseSettings):
 
     # CORS
     CORS_ORIGINS: str = "http://localhost:5173,http://localhost:3000,https://lighthouse-sns-frontend.vercel.app"
+    FRONTEND_URL: str = "http://localhost:5173"  # Primary frontend URL for OAuth redirects
 
     # OpenAI
     OPENAI_API_KEY: str = ""
