@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { api } from '../api/client';
+import { api } from '../lib/api';
 
 export const UniquenessChecker: React.FC<{
   content: string;
