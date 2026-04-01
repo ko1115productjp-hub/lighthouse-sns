@@ -8,7 +8,7 @@ from app.config import settings
 
 # Category-based moderation policies
 STRICT_CATEGORIES = {"SCIENCE", "TECHNOLOGY"}  # Descriptions also blocked
-EXPRESSIVE_CATEGORIES = {"ART", "ESSAY", "DISCUSSION", "EDUCATION"}  # Only incitement blocked
+EXPRESSIVE_CATEGORIES = {"ART", "ESSAY", "DISCUSSION", "EDUCATION", "PLACE", "EXPERIENCE", "PHILOSOPHY", "SOCIETY", "SCRIPT", "OTHER"}  # Only incitement blocked
 
 
 class FlaggedSegment:
