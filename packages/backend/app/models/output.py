@@ -65,13 +65,13 @@ class Output(Base):
 
     # Visibility and AI review
     visibility: Mapped[VisibilityEnum] = mapped_column(
-        SQLEnum(VisibilityEnum, name="visibility"),
+        SQLEnum(VisibilityEnum, name="visibility", values_callable=lambda x: [e.value for e in x]),
         default=VisibilityEnum.PUBLIC,
         nullable=False,
         index=True,
     )
     ai_review_status: Mapped[AIReviewStatus] = mapped_column(
-        SQLEnum(AIReviewStatus, name="ai_review_status"),
+        SQLEnum(AIReviewStatus, name="ai_review_status", values_callable=lambda x: [e.value for e in x]),
         default=AIReviewStatus.PENDING,
         nullable=False,
     )
