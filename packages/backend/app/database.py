@@ -19,8 +19,10 @@ engine = create_async_engine(
     poolclass=NullPool,  # Disable connection pooling for serverless
     connect_args={
         "statement_cache_size": 0,  # Disable prepared statement cache for pgbouncer
+        "prepared_statement_cache_size": 0,  # Also disable prepared statement name cache
         "server_settings": {
             "application_name": "lighthouse_backend",
+            "plan_cache_mode": "force_custom_plan",
         },
     },
 )
