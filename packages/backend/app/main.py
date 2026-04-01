@@ -11,38 +11,12 @@ from app.config import settings
 from app.database import engine, Base
 
 
-async def run_migrations():
-    """Run pending database migrations on startup."""
-    from sqlalchemy import text
-
-    async with engine.begin() as conn:
-        # Add tags column if it doesn't exist
-        await conn.execute(text("""
-            DO $$
-            BEGIN
-                IF NOT EXISTS (
-                    SELECT 1 FROM information_schema.columns
-                    WHERE table_name = 'outputs' AND column_name = 'tags'
-                ) THEN
-                    ALTER TABLE outputs ADD COLUMN tags VARCHAR(30)[] NOT NULL DEFAULT '{}';
-                END IF;
-            END $$;
-        """))
-        print("✅ Database migrations checked")
-
-
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application lifespan events"""
     # Startup
     print("🚀 Starting Lighthouse Backend API...")
     print(f"📊 Database URL: {settings.DATABASE_URL}")
-
-    # Run pending migrations
-    try:
-        await run_migrations()
-    except Exception as e:
-        print(f"⚠️ Migration error (non-fatal): {e}")
 
     yield
 
@@ -105,6 +79,29 @@ async def api_v1_health_check():
         "database": "connected",  # TODO: Add actual DB health check
         "redis": "connected",  # TODO: Add actual Redis health check
     }
+
+
+@app.post("/api/v1/admin/migrate")
+async def run_migrations():
+    """Run pending database migrations manually."""
+    from sqlalchemy import text
+
+    results = []
+    async with engine.begin() as conn:
+        # Check and add tags column
+        row = await conn.execute(text(
+            "SELECT 1 FROM information_schema.columns "
+            "WHERE table_name = 'outputs' AND column_name = 'tags'"
+        ))
+        if row.fetchone() is None:
+            await conn.execute(text(
+                "ALTER TABLE outputs ADD COLUMN tags VARCHAR(30)[] NOT NULL DEFAULT '{}'"
+            ))
+            results.append("Added tags column to outputs")
+        else:
+            results.append("tags column already exists")
+
+    return {"status": "ok", "migrations": results}
 
 
 # Include routers
