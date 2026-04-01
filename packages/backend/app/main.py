@@ -11,6 +11,26 @@ from app.config import settings
 from app.database import engine, Base
 
 
+async def run_migrations():
+    """Run pending database migrations on startup."""
+    from sqlalchemy import text
+
+    async with engine.begin() as conn:
+        # Add tags column if it doesn't exist
+        await conn.execute(text("""
+            DO $$
+            BEGIN
+                IF NOT EXISTS (
+                    SELECT 1 FROM information_schema.columns
+                    WHERE table_name = 'outputs' AND column_name = 'tags'
+                ) THEN
+                    ALTER TABLE outputs ADD COLUMN tags VARCHAR(30)[] NOT NULL DEFAULT '{}';
+                END IF;
+            END $$;
+        """))
+        print("✅ Database migrations checked")
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application lifespan events"""
@@ -18,9 +38,11 @@ async def lifespan(app: FastAPI):
     print("🚀 Starting Lighthouse Backend API...")
     print(f"📊 Database URL: {settings.DATABASE_URL}")
 
-    # Create tables (for development only, use Alembic in production)
-    # async with engine.begin() as conn:
-    #     await conn.run_sync(Base.metadata.create_all)
+    # Run pending migrations
+    try:
+        await run_migrations()
+    except Exception as e:
+        print(f"⚠️ Migration error (non-fatal): {e}")
 
     yield
 
