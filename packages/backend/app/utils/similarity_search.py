@@ -96,6 +96,10 @@ async def find_similar_outputs(
 
     except Exception as e:
         print(f"⚠️ Error during similarity search: {e}")
+        # Rollback the session to clear the failed transaction state
+        # Without this, subsequent queries in the same session will fail with
+        # InFailedSQLTransactionError
+        await db.rollback()
         return []
 
 
