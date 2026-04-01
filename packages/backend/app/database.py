@@ -8,21 +8,23 @@ from sqlalchemy.pool import NullPool
 
 from app.config import settings
 
+# Supabase Transaction Pooler (port 6543) does not support prepared statements.
+# Switch to Session Pooler (port 5432) which does support them.
+database_url = settings.DATABASE_URL
+if ":6543/" in database_url:
+    database_url = database_url.replace(":6543/", ":5432/")
+
 # Create async engine
 # Use NullPool for serverless environments (Vercel) - no connection pooling
-# Use statement_cache_size=0 for Supabase Transaction Pooler (pgbouncer) compatibility
-# pgbouncer in transaction mode does not support prepared statements
 engine = create_async_engine(
-    settings.DATABASE_URL,
+    database_url,
     echo=settings.DEBUG,
     future=True,
     poolclass=NullPool,  # Disable connection pooling for serverless
     connect_args={
         "statement_cache_size": 0,  # Disable prepared statement cache for pgbouncer
-        "prepared_statement_cache_size": 0,  # Also disable prepared statement name cache
         "server_settings": {
             "application_name": "lighthouse_backend",
-            "plan_cache_mode": "force_custom_plan",
         },
     },
 )
