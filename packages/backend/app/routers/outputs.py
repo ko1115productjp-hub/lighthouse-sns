@@ -605,12 +605,13 @@ async def get_timeline(
     # Build base query
     query = select(Output)
 
-    # Visibility filtering
+    # Visibility filtering (normalize to uppercase for comparison)
+    visibility_upper = visibility.upper() if visibility else None
     if current_user:
         # Authenticated: show PUBLIC + PRIVATE from followed users
-        if visibility == "PUBLIC":
+        if visibility_upper == "PUBLIC":
             query = query.where(Output.visibility == VisibilityEnum.PUBLIC)
-        elif visibility == "PRIVATE":
+        elif visibility_upper == "PRIVATE":
             # Get followed user IDs
             followed_result = await db.execute(
                 select(Follow.followed_id).where(Follow.follower_id == current_user.id)
