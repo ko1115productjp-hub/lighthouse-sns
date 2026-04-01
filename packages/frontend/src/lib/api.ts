@@ -253,6 +253,8 @@ export const outputsAPI = {
   getMyRejected: () => api.get<Output[]>('/outputs/me/rejected'),
 
   verifyHash: (id: string) => api.get<HashVerificationResponse>(`/outputs/${id}/verify`),
+
+  review: (id: string) => api.post<Output>(`/outputs/${id}/review`),
 };
 
 // Citations API

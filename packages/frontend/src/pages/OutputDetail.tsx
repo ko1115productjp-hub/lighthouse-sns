@@ -2,7 +2,7 @@
  * Output Detail Page - Display single output with citations and history
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, useLocation, Link } from 'react-router-dom';
 import {
   outputsAPI,
@@ -40,6 +40,9 @@ export function OutputDetail() {
   const [isVerifying, setIsVerifying] = useState(false);
   const [showVerificationModal, setShowVerificationModal] = useState(false);
 
+  // Polling interval ref for pending review status
+  const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
   useEffect(() => {
     if (id) {
       loadOutput();
@@ -49,6 +52,39 @@ export function OutputDetail() {
       loadOutputFollowStats();
     }
   }, [id]);
+
+  // Poll every 5 seconds while ai_review_status is 'pending'
+  useEffect(() => {
+    if (output?.ai_review_status === 'pending') {
+      pollingRef.current = setInterval(async () => {
+        if (!id) return;
+        try {
+          const response = await outputsAPI.get(id);
+          setOutput(response.data);
+          if (response.data.ai_review_status !== 'pending') {
+            if (pollingRef.current) {
+              clearInterval(pollingRef.current);
+              pollingRef.current = null;
+            }
+          }
+        } catch (err) {
+          console.error('Failed to poll output status:', err);
+        }
+      }, 5000);
+    } else {
+      if (pollingRef.current) {
+        clearInterval(pollingRef.current);
+        pollingRef.current = null;
+      }
+    }
+
+    return () => {
+      if (pollingRef.current) {
+        clearInterval(pollingRef.current);
+        pollingRef.current = null;
+      }
+    };
+  }, [output?.ai_review_status, id]);
 
   const loadOutput = async () => {
     if (!id) return;
@@ -244,12 +280,11 @@ export function OutputDetail() {
   return (
     <div className="max-w-4xl mx-auto">
       {/* Success Message */}
-      {location.state?.noveltyScore !== undefined && (
+      {location.state?.created && (
         <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
           <h3 className="text-green-900 font-semibold mb-1">✅ 投稿が作成されました！</h3>
           <p className="text-green-800 text-sm">
-            独自性スコア: <strong>{(location.state.noveltyScore * 100).toFixed(1)}%</strong>
-            {location.state.noveltyScore >= 0.5 ? ' - 公開投稿として投稿されました' : ' - 非公開投稿として投稿されました'}
+            AIによる査読を開始しました。結果はこのページに自動的に反映されます。
           </p>
         </div>
       )}
@@ -276,7 +311,13 @@ export function OutputDetail() {
             <span className={`px-3 py-1 rounded-full text-xs font-medium ${getCategoryColor(output.category)}`}>
               {output.category}
             </span>
-            {output.visibility === 'private' && (
+            {output.ai_review_status === 'pending' && (
+              <span className="px-3 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 flex items-center gap-1">
+                <span className="inline-block w-2 h-2 rounded-full bg-yellow-500 animate-pulse"></span>
+                査読中...
+              </span>
+            )}
+            {output.visibility === 'private' && output.ai_review_status !== 'pending' && (
               <span className="px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700">
                 🔒 非公開
               </span>
@@ -309,6 +350,21 @@ export function OutputDetail() {
                 #{tag}
               </span>
             ))}
+          </div>
+        )}
+
+        {/* Pending Review Banner */}
+        {output.ai_review_status === 'pending' && (
+          <div className="mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg flex items-center gap-3">
+            <div className="flex-shrink-0">
+              <div className="w-5 h-5 rounded-full border-2 border-yellow-500 border-t-transparent animate-spin"></div>
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-yellow-900">査読中...</p>
+              <p className="text-xs text-yellow-800 mt-0.5">
+                AIによる独自性・オリジナリティの査読を行っています。5秒ごとに自動更新されます。
+              </p>
+            </div>
           </div>
         )}
 

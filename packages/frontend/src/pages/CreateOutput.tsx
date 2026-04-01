@@ -135,17 +135,6 @@ export function CreateOutput() {
         return;
       }
 
-      // Check if demoted to private due to originality concerns
-      if (createdOutput.visibility === 'private' && createdOutput.ai_review_feedback) {
-        // Show originality feedback
-        setError(
-          `投稿は保存されましたが、Private投稿として保存されました:\n${createdOutput.ai_review_feedback}\n\n内容を改善して再投稿することで、Public投稿として公開される可能性があります。`
-        );
-        setIsLoading(false);
-        // Don't navigate away - let user see feedback and edit
-        return;
-      }
-
       // If citing another output, create the citation
       if (citedOutput) {
         try {
@@ -161,9 +150,12 @@ export function CreateOutput() {
         }
       }
 
-      // Navigate to the created output detail page
-      navigate(`/output/${createdOutput.id}`, {
-        state: { noveltyScore: createdOutput.novelty_score },
+      // Navigate to the created output detail page immediately
+      navigate(`/output/${createdOutput.id}`, { state: { created: true } });
+
+      // Fire background review (don't await - runs asynchronously)
+      outputsAPI.review(createdOutput.id).catch((reviewErr) => {
+        console.error('Background review failed:', reviewErr);
       });
     } catch (err: any) {
       setError(err.response?.data?.detail || '投稿の作成に失敗しました');

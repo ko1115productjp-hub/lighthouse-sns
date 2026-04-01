@@ -55,6 +55,10 @@ async def create_output(
     """
     Create a new output (post).
 
+    Performs only content moderation synchronously (~2s).
+    If moderation passes, saves with ai_review_status=PENDING and returns immediately.
+    Full review pipeline (embeddings, similarity, originality) runs via POST /outputs/{id}/review.
+
     Args:
         output_data: Output creation data
         current_user: Current authenticated user
@@ -78,106 +82,29 @@ async def create_output(
         output_data.content, category=output_data.category.value
     )
 
-    # Determine AI review status and feedback
+    # Get creation timestamp
+    created_at = datetime.now(timezone.utc)
+
+    # Generate content hash (content only, for deduplication)
+    content_hash = generate_content_hash(content=output_data.content)
+
     if not moderation_result.is_safe:
         # Rejected: Store as private draft with feedback
         ai_review_status = AIReviewStatus.REJECTED
         ai_review_flagged_categories = moderation_result.flagged_categories
         ai_review_feedback = moderation_result.get_user_feedback()
-        visibility = "private"  # Rejected outputs are always private
-        novelty_score = None  # Don't calculate novelty for rejected content
-
-        # Don't perform originality checks for rejected content
-        content_embedding = None
-        originality_score = None
-        ai_generated_probability = None
-        originality_warnings = None
-        originality_reasoning = None
+        visibility = VisibilityEnum.PRIVATE
 
         # Simplified hashing for rejected content (not part of hash chain)
-        content_hash = generate_content_hash(content=output_data.content)
         full_hash = content_hash  # Use content hash as full hash
     else:
-        # Approved: Proceed with originality checking (査読1 - Lighthouse Protocol)
-        ai_review_status = AIReviewStatus.APPROVED
+        # Moderation passed: save as PENDING, skip full review pipeline
+        ai_review_status = AIReviewStatus.PENDING
         ai_review_flagged_categories = None
         ai_review_feedback = None
-
-        # === Phase 1.2: Embeddings Generation ===
-        content_embedding = await generate_embedding(output_data.content)
-
-        # === Phase 1.3: Similarity Check (Internal Database) ===
-        similar_outputs = []
-        if content_embedding:
-            similar_outputs = await find_similar_outputs(
-                db=db,
-                embedding=content_embedding,
-                threshold=0.85,
-                limit=5,
-            )
-
-        # === Phase 1.4: Web Search Check (External Plagiarism) ===
-        web_results = await search_web_for_content(
-            content=output_data.content,
-            num_phrases=3,
-            results_per_phrase=3,
-        )
-
-        # === Phase 1.5: LLM Originality Judgment ===
-        originality_judgment = await check_originality_with_llm(
-            content=output_data.content,
-            similar_outputs=similar_outputs,
-            web_search_results=web_results,
-        )
-
-        # Initialize originality fields with defaults
-        originality_score = None
-        ai_generated_probability = None
-        originality_warnings = []
-        originality_reasoning = None
-        novelty_score = None
-
-        # Determine visibility based on originality judgment
-        if originality_judgment:
-            originality_score = originality_judgment.originality_score
-            ai_generated_probability = originality_judgment.ai_generated_probability
-            originality_reasoning = originality_judgment.reasoning
-
-            # Generate warning messages
-            originality_warnings = generate_originality_warnings(
-                judgment=originality_judgment,
-                similar_outputs=similar_outputs,
-                web_results=web_results,
-            )
-
-            # Check if approved for public based on originality
-            is_approved, approval_reason = should_approve_for_public(
-                judgment=originality_judgment,
-                threshold=60,  # Default threshold from Lighthouse Protocol
-                similar_outputs=similar_outputs,
-                web_results=web_results,
-            )
-
-            if not is_approved:
-                # Demote to private due to low originality
-                visibility = "private"
-                ai_review_feedback = approval_reason
-            else:
-                # Calculate novelty score (Phase 2 feature, optional)
-                novelty_score = await calculate_novelty_score(output_data.content)
-                # Determine visibility (can be public or private based on novelty)
-                visibility = await determine_visibility(novelty_score)
-        else:
-            # No originality judgment available (API error, etc.)
-            # Fallback to novelty-based visibility
-            novelty_score = await calculate_novelty_score(output_data.content)
-            visibility = await determine_visibility(novelty_score)
-
-        # Generate content hash (content only, for deduplication)
-        content_hash = generate_content_hash(content=output_data.content)
+        visibility = VisibilityEnum.PRIVATE  # Will be updated after review
 
         # Generate full hash (content + metadata + timestamp) for hash chain
-        created_at = datetime.now(timezone.utc)
         full_hash = generate_full_hash(
             content=output_data.content,
             user_id=str(current_user.id),
@@ -189,9 +116,6 @@ async def create_output(
             referenced_entity_id=output_data.referenced_entity_id,
             referenced_entity_data=output_data.referenced_entity_data,
         )
-
-    # Get creation timestamp
-    created_at = datetime.now(timezone.utc)
 
     # Generate output ID
     output_id = generate_output_id(full_hash, created_at)
@@ -211,16 +135,16 @@ async def create_output(
         content=output_data.content,
         category=output_data.category,  # Pass enum directly
         tags=output_data.tags or [],
-        visibility=VisibilityEnum(visibility),
+        visibility=visibility,
         ai_review_status=ai_review_status,
         ai_review_flagged_categories=ai_review_flagged_categories,
         ai_review_feedback=ai_review_feedback,
-        novelty_score=novelty_score if ai_review_status == AIReviewStatus.APPROVED else None,
-        content_embedding=content_embedding if ai_review_status == AIReviewStatus.APPROVED else None,
-        originality_score=originality_score,
-        ai_generated_probability=ai_generated_probability,
-        originality_warnings=originality_warnings if originality_warnings else None,
-        originality_reasoning=originality_reasoning,
+        novelty_score=None,
+        content_embedding=None,
+        originality_score=None,
+        ai_generated_probability=None,
+        originality_warnings=None,
+        originality_reasoning=None,
         referenced_entity_type=output_data.referenced_entity_type,
         referenced_entity_id=output_data.referenced_entity_id,
         referenced_entity_data=output_data.referenced_entity_data,
@@ -236,6 +160,146 @@ async def create_output(
     await db.refresh(new_output)
 
     return OutputResponse.model_validate(new_output)
+
+
+@router.post("/{output_id}/review", response_model=OutputResponse)
+async def review_output(
+    output_id: str,
+    current_user: User = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db),
+) -> OutputResponse:
+    """
+    Run the full AI review pipeline for an output (background review step).
+
+    Executes embeddings generation, similarity search, web search, and LLM originality check.
+    Updates the output's ai_review_status, visibility, and originality scores.
+    This endpoint is idempotent - safe to call multiple times.
+
+    Args:
+        output_id: Output ID to review
+        current_user: Current authenticated user
+        db: Database session
+
+    Returns:
+        Updated output information
+
+    Raises:
+        HTTPException: If output not found, user not authorized, or output was rejected
+    """
+    # Load the output from DB
+    result = await db.execute(select(Output).where(Output.id == output_id))
+    output = result.scalar_one_or_none()
+
+    if output is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Output not found",
+        )
+
+    # Only the author can trigger review
+    if output.user_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You do not have permission to review this output",
+        )
+
+    # Skip review if already rejected (content moderation failed)
+    if output.ai_review_status == AIReviewStatus.REJECTED:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Cannot review a rejected output",
+        )
+
+    # Idempotent: if already reviewed (APPROVED), return as-is
+    if output.ai_review_status == AIReviewStatus.APPROVED:
+        return OutputResponse.model_validate(output)
+
+    # === Phase 1.2: Embeddings Generation ===
+    content_embedding = await generate_embedding(output.content)
+
+    # === Phase 1.3: Similarity Check (Internal Database) ===
+    similar_outputs = []
+    if content_embedding:
+        similar_outputs = await find_similar_outputs(
+            db=db,
+            embedding=content_embedding,
+            threshold=0.85,
+            limit=5,
+        )
+
+    # === Phase 1.4: Web Search Check (External Plagiarism) ===
+    web_results = await search_web_for_content(
+        content=output.content,
+        num_phrases=3,
+        results_per_phrase=3,
+    )
+
+    # === Phase 1.5: LLM Originality Judgment ===
+    originality_judgment = await check_originality_with_llm(
+        content=output.content,
+        similar_outputs=similar_outputs,
+        web_search_results=web_results,
+    )
+
+    # Initialize originality fields
+    originality_score = None
+    ai_generated_probability = None
+    originality_warnings = []
+    originality_reasoning = None
+    novelty_score = None
+    ai_review_feedback = None
+
+    if originality_judgment:
+        originality_score = originality_judgment.originality_score
+        ai_generated_probability = originality_judgment.ai_generated_probability
+        originality_reasoning = originality_judgment.reasoning
+
+        # Generate warning messages
+        originality_warnings = generate_originality_warnings(
+            judgment=originality_judgment,
+            similar_outputs=similar_outputs,
+            web_results=web_results,
+        )
+
+        # Check if approved for public based on originality
+        is_approved, approval_reason = should_approve_for_public(
+            judgment=originality_judgment,
+            threshold=60,  # Default threshold from Lighthouse Protocol
+            similar_outputs=similar_outputs,
+            web_results=web_results,
+        )
+
+        if not is_approved:
+            # Demote to private due to low originality
+            visibility = VisibilityEnum.PRIVATE
+            ai_review_feedback = approval_reason
+        else:
+            # Calculate novelty score and determine visibility
+            novelty_score = await calculate_novelty_score(output.content)
+            visibility_str = await determine_visibility(novelty_score)
+            visibility = VisibilityEnum(visibility_str)
+    else:
+        # No originality judgment available (API error, etc.)
+        # Fallback to novelty-based visibility
+        novelty_score = await calculate_novelty_score(output.content)
+        visibility_str = await determine_visibility(novelty_score)
+        visibility = VisibilityEnum(visibility_str)
+
+    # Update output with review results
+    output.ai_review_status = AIReviewStatus.APPROVED
+    output.ai_review_feedback = ai_review_feedback
+    output.visibility = visibility
+    output.content_embedding = content_embedding
+    output.novelty_score = novelty_score
+    output.originality_score = originality_score
+    output.ai_generated_probability = ai_generated_probability
+    output.originality_warnings = originality_warnings if originality_warnings else None
+    output.originality_reasoning = originality_reasoning
+
+    await db.commit()
+    await db.refresh(output)
+
+    return OutputResponse.model_validate(output)
 @router.patch("/{output_id}", response_model=OutputResponse)
 async def update_output(
     output_id: str,
